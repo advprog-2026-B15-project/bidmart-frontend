@@ -1,6 +1,7 @@
 'use client';
 import { useState, useRef, type Dispatch, type KeyboardEvent, type SetStateAction } from 'react';
 import { useRouter } from 'next/navigation';
+import { setToken } from '@/lib/api';
 import Logo from '@/components/Logo';
 import Button from '@/components/ui/Button';
 import { Eye, EyeOff, Shield } from '@/components/icons';
@@ -123,14 +124,20 @@ function SignInForm({
 }: Readonly<{
   showPw: boolean;
   onTogglePassword: () => void;
-  onSubmit: () => void;
+  onSubmit: (email: string, password: string) => void;
   onRegister: () => void;
 }>) {
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+
   return (
-    <form onSubmit={e => { e.preventDefault(); onSubmit(); }}>
+    <form onSubmit={e => {
+      e.preventDefault();
+      onSubmit(emailRef.current?.value ?? '', passwordRef.current?.value ?? '');
+    }}>
       <div className="bm-field">
         <label htmlFor="signin-email">Email</label>
-        <input id="signin-email" type="email" placeholder="kamu@email.com" defaultValue="aulia.r@gmail.com"/>
+        <input ref={emailRef} id="signin-email" type="email" placeholder="kamu@email.com"/>
       </div>
       <div className="bm-field">
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -138,7 +145,7 @@ function SignInForm({
           <a href="#forgot-password" style={{ color: 'var(--blue-600)', fontSize: 12, fontWeight: 500 }}>Lupa password?</a>
         </div>
         <div style={{ position: 'relative', display: 'flex' }}>
-          <input id="signin-password" type={showPw ? 'text' : 'password'} placeholder="••••••••••" defaultValue="supersecret" style={{ flex: 1, paddingRight: 40 }}/>
+          <input ref={passwordRef} id="signin-password" type={showPw ? 'text' : 'password'} placeholder="••••••••••" style={{ flex: 1, paddingRight: 40 }}/>
           <button type="button" aria-label="Tampilkan atau sembunyikan password" onClick={onTogglePassword} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 0, color: 'var(--ink-3)', cursor: 'pointer', padding: 6 }}>
             {showPw ? <EyeOff width={18} height={18}/> : <Eye width={18} height={18}/>}
           </button>
@@ -216,11 +223,13 @@ function AuthPanel({
   setMode,
   showPw,
   togglePassword,
+  onLoginSubmit,
 }: Readonly<{
   mode: Exclude<AuthMode, 'otp'>;
   setMode: ModeSetter;
   showPw: boolean;
   togglePassword: () => void;
+  onLoginSubmit: (email: string, password: string) => void;
 }>) {
   const showOtp = () => setMode('otp');
 
@@ -229,7 +238,7 @@ function AuthPanel({
       <AuthIntro mode={mode}/>
       <AuthTabs mode={mode} setMode={setMode}/>
       {mode === 'signin'
-        ? <SignInForm showPw={showPw} onTogglePassword={togglePassword} onSubmit={showOtp} onRegister={() => setMode('register')}/>
+        ? <SignInForm showPw={showPw} onTogglePassword={togglePassword} onSubmit={onLoginSubmit} onRegister={() => setMode('register')}/>
         : <RegisterForm onSubmit={showOtp} onSignIn={() => setMode('signin')}/>}
     </>
   );
@@ -256,13 +265,33 @@ export default function LoginPage() {
   const goToHome = () => router.push('/');
   const goToSignIn = () => setMode('signin');
 
+  async function handleLogin(email: string, password: string) {
+    try {
+      const GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? 'https://bidmart-b15.duckdns.org';
+      const res = await fetch(`${GATEWAY_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!res.ok) { alert('Email atau password salah.'); return; }
+      const data = await res.json() as Record<string, string>;
+      const token = data['token'] ?? data['accessToken'] ?? data['access_token'] ?? '';
+      const userId = data['userId'] ?? data['user_id'] ?? data['id'] ?? email;
+      const role = data['role'] ?? 'BUYER';
+      setToken(token, userId, role);
+      setMode('otp');
+    } catch {
+      alert('Gagal menghubungi server. Coba lagi.');
+    }
+  }
+
   return (
     <div className="bm-auth-shell">
       <div className="bm-auth-logo"><Logo size={30}/></div>
       <div className="bm-auth-card">
         {mode === 'otp'
           ? <OtpPanel otp={otp} setOtp={setOtp} otpRefs={otpRefs} onBack={goToSignIn} onVerify={goToHome}/>
-          : <AuthPanel mode={mode} setMode={setMode} showPw={showPw} togglePassword={togglePassword}/>}
+          : <AuthPanel mode={mode} setMode={setMode} showPw={showPw} togglePassword={togglePassword} onLoginSubmit={handleLogin}/>}
       </div>
       <AuthFooterLinks/>
     </div>
