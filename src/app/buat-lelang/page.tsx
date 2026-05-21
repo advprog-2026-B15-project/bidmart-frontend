@@ -191,7 +191,7 @@ export default function BuatLelangPage() {
               <div className="bm-field"><label>Berat paket (gram)</label><input defaultValue="850"/></div>
             </div>
             <div className="bm-field">
-              <label>Kurir tersedia</label>
+              <span className="bm-field-label">Kurir tersedia</span>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {['JNE Express', 'J&T Express', 'SiCepat', 'Anteraja', 'GoSend', 'Ninja Xpress'].map(c => (
                   <label key={c} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '8px 12px', border: '1px solid var(--border-strong)', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}>
