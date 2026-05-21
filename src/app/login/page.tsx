@@ -5,21 +5,29 @@ import Logo from '@/components/Logo';
 import Button from '@/components/ui/Button';
 import { Eye, EyeOff, Shield } from '@/components/icons';
 
+function otpChange(
+  pos: number, val: string,
+  otp: string[], setOtp: React.Dispatch<React.SetStateAction<string[]>>,
+  refs: React.MutableRefObject<(HTMLInputElement | null)[]>,
+) {
+  if (val && !/^\d$/.test(val)) return;
+  const next = [...otp]; next[pos] = val; setOtp(next);
+  if (val && pos < 5) refs.current[pos + 1]?.focus();
+}
+
+function otpKey(
+  pos: number, e: React.KeyboardEvent,
+  otp: string[], refs: React.MutableRefObject<(HTMLInputElement | null)[]>,
+) {
+  if (e.key === 'Backspace' && !otp[pos] && pos > 0) refs.current[pos - 1]?.focus();
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState<'signin' | 'register' | 'otp'>('signin');
   const [showPw, setShowPw] = useState(false);
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  function handleOtpChange(i: number, v: string) {
-    if (v && !/^\d$/.test(v)) return;
-    const next = [...otp]; next[i] = v; setOtp(next);
-    if (v && i < 5) otpRefs.current[i + 1]?.focus();
-  }
-  function handleOtpKey(i: number, e: React.KeyboardEvent) {
-    if (e.key === 'Backspace' && !otp[i] && i > 0) otpRefs.current[i - 1]?.focus();
-  }
 
   return (
     <div className="bm-auth-shell">
@@ -43,8 +51,8 @@ export default function LoginPage() {
                   ref={el => { otpRefs.current[pos] = el; }}
                   type="text" inputMode="numeric" maxLength={1}
                   value={otp[pos]} className={otp[pos] ? 'filled' : ''}
-                  onChange={e => handleOtpChange(pos, e.target.value)}
-                  onKeyDown={e => handleOtpKey(pos, e)}
+                  onChange={e => otpChange(pos, e.target.value, otp, setOtp, otpRefs)}
+                  onKeyDown={e => otpKey(pos, e, otp, otpRefs)}
                 />
               ))}
             </div>

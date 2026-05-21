@@ -20,15 +20,15 @@ export function AuctionProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [modal, setModal] = useState<ModalState | null>(null);
 
-  const addToast = useCallback((t: Omit<Toast, 'id'>) => {
-    const id = Math.random().toString(36).slice(2);
-    setToasts(prev => [...prev, { ...t, id }]);
-    setTimeout(() => setToasts(prev => prev.filter(x => x.id !== id)), 4000);
-  }, []);
-
   const dismissToast = useCallback((id: string) => {
     setToasts(prev => prev.filter(x => x.id !== id));
   }, []);
+
+  const addToast = useCallback((t: Omit<Toast, 'id'>) => {
+    const id = Math.random().toString(36).slice(2);
+    setToasts(prev => [...prev, { ...t, id }]);
+    setTimeout(() => dismissToast(id), 4000);
+  }, [dismissToast]);
 
   const openModal = useCallback((item: AuctionItem, amount: number) => {
     setModal({ item, amount });
