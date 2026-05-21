@@ -5,7 +5,7 @@ interface SwitchProps {
   onChange: (v: boolean) => void;
 }
 
-export default function Switch({ on, onChange }: SwitchProps) {
+export default function Switch({ on, onChange }: Readonly<SwitchProps>) {
   return (
     <button
       className={`bm-switch ${on ? 'on' : ''}`}

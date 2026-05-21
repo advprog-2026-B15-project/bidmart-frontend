@@ -37,14 +37,14 @@ export default function LoginPage() {
               Masukkan 6 digit kode dari aplikasi <b style={{ color: 'var(--ink)' }}>Google Authenticator</b> kamu.
             </p>
             <div className="bm-otp">
-              {otp.map((v, i) => (
+              {[0, 1, 2, 3, 4, 5].map(pos => (
                 <input
-                  key={i}
-                  ref={el => { otpRefs.current[i] = el; }}
+                  key={pos}
+                  ref={el => { otpRefs.current[pos] = el; }}
                   type="text" inputMode="numeric" maxLength={1}
-                  value={v} className={v ? 'filled' : ''}
-                  onChange={e => handleOtpChange(i, e.target.value)}
-                  onKeyDown={e => handleOtpKey(i, e)}
+                  value={otp[pos]} className={otp[pos] ? 'filled' : ''}
+                  onChange={e => handleOtpChange(pos, e.target.value)}
+                  onKeyDown={e => handleOtpKey(pos, e)}
                 />
               ))}
             </div>

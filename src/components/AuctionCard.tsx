@@ -10,7 +10,7 @@ interface AuctionCardProps {
   onClick?: () => void;
 }
 
-export default function AuctionCard({ item, onClick }: AuctionCardProps) {
+export default function AuctionCard({ item, onClick }: Readonly<AuctionCardProps>) {
   const [watched, setWatched] = useState(false);
   const { total } = useCountdown(item.ends);
   const urgent = total < 2 * 60 * 1000 && total > 0;

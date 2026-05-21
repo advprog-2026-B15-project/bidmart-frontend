@@ -7,7 +7,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   leftIcon?: React.ReactNode;
 }
 
-export default function Button({ variant = 'primary', size = 'md', leftIcon, children, className = '', ...rest }: ButtonProps) {
+export default function Button({ variant = 'primary', size = 'md', leftIcon, children, className = '', ...rest }: Readonly<ButtonProps>) {
   return (
     <button className={`bm-btn bm-btn-${variant} bm-btn-${size} ${className}`} {...rest}>
       {leftIcon}{children}

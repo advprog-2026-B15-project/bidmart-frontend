@@ -13,7 +13,7 @@ interface BidConfirmModalProps {
   onConfirm: () => void;
 }
 
-export default function BidConfirmModal({ open, item, bidAmount, onClose, onConfirm }: BidConfirmModalProps) {
+export default function BidConfirmModal({ open, item, bidAmount, onClose, onConfirm }: Readonly<BidConfirmModalProps>) {
   if (!open || !item) return null;
   const fee = Math.round(bidAmount * 0.02);
   const total = bidAmount + fee;

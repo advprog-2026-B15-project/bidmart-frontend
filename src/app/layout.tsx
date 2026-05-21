@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   description: 'Temukan, tawar, dan menangkan lelang real-time dari jutaan produk.',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="id" className={inter.variable}>
       <body>

@@ -6,14 +6,20 @@ import Badge from '@/components/ui/Badge';
 import { Users, Gavel, DollarSign, AlertTri, TrendUp, Refresh, Plus, MoreH, ArrowRight } from '@/components/icons';
 import { ADMIN_USERS, ADMIN_FLAGS, ADMIN_DISPUTES, fmtRp, fmtRpShort } from '@/lib/data';
 
-function SparkMetric({ label, value, delta, deltaTone, data, highlight }: {
+function SparkMetric({ label, value, delta, deltaTone, data, highlight }: Readonly<{
   label: string; value: string; delta: string; deltaTone: 'up' | 'down';
   data: number[]; highlight?: number;
-}) {
+}>) {
   const max = Math.max(...data), min = Math.min(...data);
   const w = 200, h = 44;
   const step = w / (data.length - 1);
   const pts = data.map((v, i) => `${i * step},${h - ((v - min) / (max - min || 1)) * (h - 4) - 2}`).join(' ');
+  const dots = data.map((v, i) => ({
+    cx: i * step,
+    cy: h - ((v - min) / (max - min || 1)) * (h - 4) - 2,
+    active: i === (highlight ?? data.length - 1),
+    key: `${Math.round(i * step)},${Math.round(h - ((v - min) / (max - min || 1)) * (h - 4) - 2)}`,
+  }));
   return (
     <div>
       <div style={{ fontSize: 12, color: 'var(--ink-2)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
@@ -23,9 +29,9 @@ function SparkMetric({ label, value, delta, deltaTone, data, highlight }: {
       </div>
       <svg width="100%" height={h + 8} viewBox={`0 0 ${w} ${h + 8}`} preserveAspectRatio="none" style={{ marginTop: 6, display: 'block' }}>
         <polyline fill="none" stroke="var(--blue-600)" strokeWidth="2" points={pts}/>
-        {data.map((v, i) => (
-          <circle key={i} cx={i * step} cy={h - ((v - min) / (max - min || 1)) * (h - 4) - 2}
-            r={i === (highlight ?? data.length - 1) ? 3.5 : 0}
+        {dots.map(dot => (
+          <circle key={dot.key} cx={dot.cx} cy={dot.cy}
+            r={dot.active ? 3.5 : 0}
             fill="var(--blue-600)" stroke="#fff" strokeWidth="2"/>
         ))}
       </svg>
@@ -113,8 +119,8 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredUsers.map((u, i) => (
-                    <tr key={i}>
+                  {filteredUsers.map(u => (
+                    <tr key={u.email}>
                       <td>
                         <div className="item-cell">
                           <span className="bm-avatar sm">{u.name.split(' ').map((p: string) => p[0]).slice(0, 2).join('').toUpperCase()}</span>

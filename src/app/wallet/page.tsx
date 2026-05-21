@@ -106,8 +106,8 @@ export default function WalletPage() {
                 </tr>
               </thead>
               <tbody>
-                {slice.map((t, i) => (
-                  <tr key={i}>
+                {slice.map(t => (
+                  <tr key={t.date + t.type + t.amount}>
                     <td style={{ color: 'var(--ink-2)' }}>{t.date}</td>
                     <td>{typeBadge(t.type)}</td>
                     <td style={{ color: 'var(--ink)' }}>{t.desc}</td>
@@ -125,8 +125,8 @@ export default function WalletPage() {
             <span>Menampilkan {(page - 1) * perPage + 1}–{Math.min(page * perPage, filtered.length)} dari {filtered.length}</span>
             <div className="pages">
               <button className="pg" disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>‹</button>
-              {Array.from({ length: totalPages }).map((_, i) => (
-                <button key={i} className={`pg ${page === i + 1 ? 'active' : ''}`} onClick={() => setPage(i + 1)}>{i + 1}</button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(pg => (
+                <button key={pg} className={`pg ${page === pg ? 'active' : ''}`} onClick={() => setPage(pg)}>{pg}</button>
               ))}
               <button className="pg" disabled={page === totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>›</button>
             </div>

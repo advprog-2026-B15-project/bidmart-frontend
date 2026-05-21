@@ -16,7 +16,7 @@ export function useCountdown(endTimestamp: number) {
   return { d, h, m, s: sec, total: ms, urgent: ms < 2 * 60 * 1000 && ms > 0 };
 }
 
-export function CompactCountdown({ end }: { end: number }) {
+export function CompactCountdown({ end }: Readonly<{ end: number }>) {
   const { d, h, m, s, total } = useCountdown(end);
   if (total <= 0) return <span>Berakhir</span>;
   if (d > 0) return <span>{d}h {h}j tersisa</span>;
@@ -25,7 +25,7 @@ export function CompactCountdown({ end }: { end: number }) {
   return <span>{s}d tersisa</span>;
 }
 
-export function BlocksCountdown({ end }: { end: number }) {
+export function BlocksCountdown({ end }: Readonly<{ end: number }>) {
   const { d, h, m, s, total } = useCountdown(end);
   const urgent = total < 2 * 60 * 1000 && total > 0;
   const safe = total > 60 * 60 * 1000;

@@ -6,7 +6,7 @@ interface ToasterProps {
   onDismiss: (id: string) => void;
 }
 
-export default function Toaster({ toasts, onDismiss }: ToasterProps) {
+export default function Toaster({ toasts, onDismiss }: Readonly<ToasterProps>) {
   return (
     <div className="bm-toaster">
       {toasts.map(t => (

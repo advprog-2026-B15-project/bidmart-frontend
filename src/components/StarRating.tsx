@@ -5,7 +5,7 @@ interface StarRatingProps {
   count?: number;
 }
 
-export default function StarRating({ rating, count }: StarRatingProps) {
+export default function StarRating({ rating, count }: Readonly<StarRatingProps>) {
   const full = Math.floor(rating);
   const half = rating - full >= 0.25 && rating - full < 0.75;
   return (

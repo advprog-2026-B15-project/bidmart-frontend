@@ -10,7 +10,7 @@ interface TopNavProps {
   alerts?: number;
 }
 
-export default function TopNav({ alerts = 3 }: TopNavProps) {
+export default function TopNav({ alerts = 3 }: Readonly<TopNavProps>) {
   const router = useRouter();
   const pathname = usePathname();
   const [query, setQuery] = useState('');

@@ -14,7 +14,7 @@ function isGroup(e: NavEntry): e is NavGroup {
   return 'group' in e;
 }
 
-export default function AdminSideNav({ active }: AdminSideNavProps) {
+export default function AdminSideNav({ active }: Readonly<AdminSideNavProps>) {
   const router = useRouter();
   const items: NavEntry[] = [
     { group: 'Overview' },
@@ -38,9 +38,9 @@ export default function AdminSideNav({ active }: AdminSideNavProps) {
 
   return (
     <nav className="bm-sidenav">
-      {items.map((it, i) =>
+      {items.map(it =>
         isGroup(it) ? (
-          <div key={'g' + i} className="bm-sidenav-h">{it.group}</div>
+          <div key={'group-' + it.group} className="bm-sidenav-h">{it.group}</div>
         ) : (
           <button
             key={it.id}

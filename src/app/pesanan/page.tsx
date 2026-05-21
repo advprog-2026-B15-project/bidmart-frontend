@@ -15,7 +15,7 @@ function statusLabel(s: string) {
   }[s] || { lbl: s, cls: 'bm-status-done' };
 }
 
-function OrderCard({ order, active, onClick, role }: { order: Order; active: boolean; onClick: () => void; role: string }) {
+function OrderCard({ order, active, onClick, role }: Readonly<{ order: Order; active: boolean; onClick: () => void; role: string }>) {
   const st = statusLabel(order.status);
   return (
     <div className={`bm-order-card ${active ? 'active' : ''}`} onClick={onClick}>
@@ -38,7 +38,7 @@ function OrderCard({ order, active, onClick, role }: { order: Order; active: boo
   );
 }
 
-function OrderDetail({ order, role, trackingNum, setTrackingNum }: { order: Order; role: string; trackingNum: string; setTrackingNum: (v: string) => void }) {
+function OrderDetail({ order, role, trackingNum, setTrackingNum }: Readonly<{ order: Order; role: string; trackingNum: string; setTrackingNum: (v: string) => void }>) {
   const steps = [
     { key: 0, lbl: 'Won',       when: order.when?.replace('Dimenangkan ', '') },
     { key: 1, lbl: 'Packaging', when: order.status === 'wait' ? 'Menunggu' : '16 Mei' },
@@ -97,8 +97,8 @@ function OrderDetail({ order, role, trackingNum, setTrackingNum }: { order: Orde
           </div>
           {order.history && (
             <div className="bm-tracking-history">
-              {order.history.map((h: TrackingEvent, i: number) => (
-                <div key={i} className={`item ${h.curr ? 'curr' : ''}`}>
+              {order.history.map((h: TrackingEvent) => (
+                <div key={h.t + h.where} className={`item ${h.curr ? 'curr' : ''}`}>
                   <span className="t">{h.t}</span>
                   <span className="ix"><span className="d"/><span className="l"/></span>
                   <div className="desc">{h.desc}<div className="where">{h.where}</div></div>

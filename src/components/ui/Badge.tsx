@@ -6,7 +6,7 @@ interface BadgeProps {
   children: React.ReactNode;
 }
 
-export default function Badge({ tone = 'blue', dot, children }: BadgeProps) {
+export default function Badge({ tone = 'blue', dot, children }: Readonly<BadgeProps>) {
   return (
     <span className={`bm-badge bm-badge-${tone}`}>
       {dot && <span className="bm-badge-dot"/>}

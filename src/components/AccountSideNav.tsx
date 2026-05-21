@@ -14,7 +14,7 @@ function isGroup(e: NavEntry): e is NavGroup {
   return 'group' in e;
 }
 
-export default function AccountSideNav({ active }: AccountSideNavProps) {
+export default function AccountSideNav({ active }: Readonly<AccountSideNavProps>) {
   const router = useRouter();
   const items: NavEntry[] = [
     { group: 'Aktivitas' },
@@ -37,9 +37,9 @@ export default function AccountSideNav({ active }: AccountSideNavProps) {
 
   return (
     <nav className="bm-sidenav">
-      {items.map((it, i) =>
+      {items.map(it =>
         isGroup(it) ? (
-          <div key={'g' + i} className="bm-sidenav-h">{it.group}</div>
+          <div key={'group-' + it.group} className="bm-sidenav-h">{it.group}</div>
         ) : (
           <button
             key={it.id}

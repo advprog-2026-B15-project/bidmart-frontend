@@ -53,21 +53,24 @@ export default function BuatLelangPage() {
               <div className="s">JPG, PNG, atau WEBP — maksimum 12 foto, ukuran 8 MB per foto</div>
             </div>
             <div className="bm-upload-thumbs">
-              {imgs.map((art, i) => (
-                <div key={i} className={`bm-upload-thumb ${i === 0 && art ? 'main' : ''}`}>
-                  {art ? (
-                    <>
-                      <div className={art} style={{ width: '100%', height: '100%' }}/>
-                      <button className="x" onClick={() => { const next = [...imgs]; next[i] = null; setImgs(next); }}>×</button>
-                    </>
-                  ) : (
-                    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, color: 'var(--ink-4)', background: 'var(--surface-2)' }}>
-                      <Plus width={16} height={16}/>
-                      <span style={{ fontSize: 10 }}>Foto {i + 1}</span>
-                    </div>
-                  )}
-                </div>
-              ))}
+              {[0, 1, 2, 3, 4, 5].map(slot => {
+                const art = imgs[slot];
+                return (
+                  <div key={slot} className={`bm-upload-thumb ${slot === 0 && art ? 'main' : ''}`}>
+                    {art ? (
+                      <>
+                        <div className={art} style={{ width: '100%', height: '100%' }}/>
+                        <button className="x" onClick={() => { const next = [...imgs]; next[slot] = null; setImgs(next); }}>×</button>
+                      </>
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, color: 'var(--ink-4)', background: 'var(--surface-2)' }}>
+                        <Plus width={16} height={16}/>
+                        <span style={{ fontSize: 10 }}>Foto {slot + 1}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
             <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 10 }}>
               Foto pertama akan jadi <b style={{ color: 'var(--ink)' }}>foto utama</b>. Tarik untuk mengubah urutan.

@@ -178,8 +178,8 @@ function DetailContent() {
                 </tr>
               </thead>
               <tbody>
-                {BID_HISTORY.map((b, i) => (
-                  <tr key={i} style={{ background: b.you ? 'rgba(54,101,243,0.03)' : 'transparent' }}>
+                {BID_HISTORY.map(b => (
+                  <tr key={b.time + b.bidder} style={{ background: b.you ? 'rgba(54,101,243,0.03)' : 'transparent' }}>
                     <td>
                       <div className="item-cell">
                         <span className="bm-avatar sm" style={b.you ? { background: 'var(--blue-600)', color: '#fff' } : {}}>

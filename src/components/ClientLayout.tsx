@@ -8,7 +8,7 @@ import BidConfirmModal from './BidConfirmModal';
 
 const NO_SHELL_ROUTES = ['/login'];
 
-function InnerLayout({ children }: { children: React.ReactNode }) {
+function InnerLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const pathname = usePathname();
   const { toasts, dismissToast, modal, closeModal, addToast } = useAuction();
   const noShell = NO_SHELL_ROUTES.includes(pathname);
@@ -35,7 +35,7 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function ClientLayout({ children }: { children: React.ReactNode }) {
+export default function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <AuctionProvider>
       <InnerLayout>{children}</InnerLayout>
