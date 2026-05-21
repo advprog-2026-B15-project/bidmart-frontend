@@ -67,7 +67,7 @@ export default function HomePage() {
               Lelang dengan timer terbawah — tawar sekarang sebelum kalah.
             </p>
           </div>
-          <a>Lihat semua →</a>
+          <a href="#ending-soon">Lihat semua →</a>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
           {ending.slice(0, 8).map(it => (
@@ -84,7 +84,7 @@ export default function HomePage() {
               Berdasarkan kategori yang sering kamu lihat.
             </p>
           </div>
-          <a>Lihat semua →</a>
+          <a href="#recommended">Lihat semua →</a>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
           {ending.slice(4, 12).map(it => (

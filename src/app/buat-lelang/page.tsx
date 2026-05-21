@@ -6,6 +6,10 @@ import Switch from '@/components/ui/Switch';
 import { Upload, Plus, Check, Chevron, Gavel } from '@/components/icons';
 import { CAT_TREE, fmtRp } from '@/lib/data';
 
+const CATEGORY_TREE = CAT_TREE as Record<string, Record<string, string[]>>;
+const PHOTO_SLOTS = [0, 1, 2, 3, 4, 5];
+const DURATIONS = [1, 3, 5, 7, 10, 14];
+
 export default function BuatLelangPage() {
   const router = useRouter();
   const [imgs, setImgs] = useState<(string | null)[]>(['bm-art-elec', 'bm-art-elec', 'bm-art-music', null, null, null]);
@@ -24,13 +28,19 @@ export default function BuatLelangPage() {
   const onlyDigits = (v: string) => v.replace(/\D/g, '');
   const fmtField = (v: string) => Number(onlyDigits(v) || '0').toLocaleString('id-ID');
   const endDate = new Date(mountTime + days * 86400000).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const selectPrimaryCategory = (category: string) => {
+    const sub = Object.keys(CATEGORY_TREE[category])[0];
+    setCat1(category);
+    setCat2(sub);
+    setCat3(CATEGORY_TREE[category][sub][0]);
+  };
 
   return (
-    <div className="bm-page-wide">
-      <nav className="bm-bread">
-        <a onClick={() => router.push('/')}>Beranda</a>
+      <div className="bm-page-wide">
+        <nav className="bm-bread">
+        <button type="button" onClick={() => router.push('/')}>Beranda</button>
         <span className="sep">/</span>
-        <a>Dashboard penjual</a>
+        <a href="#seller-dashboard">Dashboard penjual</a>
         <span className="sep">/</span>
         <span className="here">Buat lelang baru</span>
       </nav>
@@ -53,7 +63,7 @@ export default function BuatLelangPage() {
               <div className="s">JPG, PNG, atau WEBP — maksimum 12 foto, ukuran 8 MB per foto</div>
             </div>
             <div className="bm-upload-thumbs">
-              {[0, 1, 2, 3, 4, 5].map(slot => {
+              {PHOTO_SLOTS.map(slot => {
                 const art = imgs[slot];
                 return (
                   <div key={slot} className={`bm-upload-thumb ${slot === 0 && art ? 'main' : ''}`}>
@@ -80,39 +90,39 @@ export default function BuatLelangPage() {
           <div className="bm-section-block">
             <h3><span className="step-num">2</span> Detail barang</h3>
             <div className="bm-field">
-              <label>Judul listing</label>
-              <input value={title} onChange={e => setTitle(e.target.value)} maxLength={120}/>
+              <label htmlFor="listing-title">Judul listing</label>
+              <input id="listing-title" value={title} onChange={e => setTitle(e.target.value)} maxLength={120}/>
               <span className="hint">{title.length}/120 karakter · Sertakan brand, model, dan kondisi</span>
             </div>
             <div className="bm-field">
-              <label>Deskripsi</label>
-              <textarea rows={6} value={desc} onChange={e => setDesc(e.target.value)}/>
+              <label htmlFor="listing-description">Deskripsi</label>
+              <textarea id="listing-description" rows={6} value={desc} onChange={e => setDesc(e.target.value)}/>
               <span className="hint">{desc.length}/4000 karakter · Jelaskan kondisi, kelengkapan, dan cacat (jika ada)</span>
             </div>
-            <div className="bm-field" style={{ marginBottom: 6 }}><label>Kategori</label></div>
+            <div className="bm-field" style={{ marginBottom: 6 }}><span className="bm-field-label">Kategori</span></div>
             <div className="bm-cat-cascade">
               <div className="bm-cat-col">
-                {Object.keys(CAT_TREE).map(k => (
-                  <div key={k} className={`it ${cat1 === k ? 'active' : ''}`}
-                    onClick={() => { setCat1(k); const sub = Object.keys(CAT_TREE[k as keyof typeof CAT_TREE])[0]; setCat2(sub); setCat3((CAT_TREE[k as keyof typeof CAT_TREE] as Record<string, string[]>)[sub][0]); }}>
+                {Object.keys(CATEGORY_TREE).map(k => (
+                  <button type="button" key={k} className={`it ${cat1 === k ? 'active' : ''}`}
+                    onClick={() => selectPrimaryCategory(k)}>
                     <span>{k}</span><Chevron width={12} height={12}/>
-                  </div>
+                  </button>
                 ))}
               </div>
               <div className="bm-cat-col">
-                {Object.keys(CAT_TREE[cat1] || {}).map((k: string) => (
-                  <div key={k} className={`it ${cat2 === k ? 'active' : ''}`}
-                    onClick={() => { setCat2(k); setCat3((CAT_TREE[cat1][k])[0]); }}>
+                {Object.keys(CATEGORY_TREE[cat1] || {}).map((k: string) => (
+                  <button type="button" key={k} className={`it ${cat2 === k ? 'active' : ''}`}
+                    onClick={() => { setCat2(k); setCat3(CATEGORY_TREE[cat1][k][0]); }}>
                     <span>{k}</span><Chevron width={12} height={12}/>
-                  </div>
+                  </button>
                 ))}
               </div>
               <div className="bm-cat-col">
-                {(CAT_TREE[cat1]?.[cat2] || []).map((k: string) => (
-                  <div key={k} className={`it ${cat3 === k ? 'active' : ''}`} onClick={() => setCat3(k)}>
+                {(CATEGORY_TREE[cat1]?.[cat2] || []).map((k: string) => (
+                  <button type="button" key={k} className={`it ${cat3 === k ? 'active' : ''}`} onClick={() => setCat3(k)}>
                     <span>{k}</span>
                     {cat3 === k && <Check width={14} height={14} style={{ color: 'var(--blue-600)' }}/>}
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -123,8 +133,8 @@ export default function BuatLelangPage() {
             </div>
             <div className="bm-grid-2" style={{ marginTop: 16 }}>
               <div className="bm-field">
-                <label>Kondisi barang</label>
-                <select className="bm-select" style={{ height: 42 }} defaultValue="used-very-good">
+                <label htmlFor="item-condition">Kondisi barang</label>
+                <select id="item-condition" className="bm-select" style={{ height: 42 }} defaultValue="used-very-good">
                   <option value="new">Baru — Segel pabrik</option>
                   <option value="new-other">Baru tanpa segel — Like new</option>
                   <option value="used-very-good">Bekas — Sangat baik</option>
@@ -133,7 +143,7 @@ export default function BuatLelangPage() {
                   <option value="parts">Untuk parts/perbaikan</option>
                 </select>
               </div>
-              <div className="bm-field"><label>Brand</label><input defaultValue="Sony"/></div>
+              <div className="bm-field"><label htmlFor="item-brand">Brand</label><input id="item-brand" defaultValue="Sony"/></div>
             </div>
           </div>
 
@@ -141,26 +151,26 @@ export default function BuatLelangPage() {
             <h3><span className="step-num">3</span> Harga &amp; aturan lelang</h3>
             <div className="bm-grid-3">
               <div className="bm-field">
-                <label>Harga awal (start)</label>
-                <div className="bm-prefix-input"><span className="px">Rp</span><input value={fmtField(startPrice)} onChange={e => setStartPrice(onlyDigits(e.target.value))}/></div>
+                <label htmlFor="start-price">Harga awal (start)</label>
+                <div className="bm-prefix-input"><span className="px">Rp</span><input id="start-price" value={fmtField(startPrice)} onChange={e => setStartPrice(onlyDigits(e.target.value))}/></div>
                 <span className="hint">Tawaran pertama dimulai dari sini</span>
               </div>
               <div className="bm-field">
-                <label>Reserve price</label>
-                <div className="bm-prefix-input"><span className="px">Rp</span><input value={fmtField(reserve)} onChange={e => setReserve(onlyDigits(e.target.value))}/></div>
+                <label htmlFor="reserve-price">Reserve price</label>
+                <div className="bm-prefix-input"><span className="px">Rp</span><input id="reserve-price" value={fmtField(reserve)} onChange={e => setReserve(onlyDigits(e.target.value))}/></div>
                 <span className="hint">Jika tidak tercapai, lelang ditutup tanpa pemenang</span>
               </div>
               <div className="bm-field">
-                <label>Kelipatan bid minimum</label>
-                <div className="bm-prefix-input"><span className="px">Rp</span><input value={fmtField(increment)} onChange={e => setIncrement(onlyDigits(e.target.value))}/></div>
+                <label htmlFor="bid-increment">Kelipatan bid minimum</label>
+                <div className="bm-prefix-input"><span className="px">Rp</span><input id="bid-increment" value={fmtField(increment)} onChange={e => setIncrement(onlyDigits(e.target.value))}/></div>
                 <span className="hint">Tawaran harus naik minimal sebesar ini</span>
               </div>
             </div>
             <div className="bm-field" style={{ marginTop: 6 }}>
-              <label>Durasi lelang</label>
+              <span className="bm-field-label">Durasi lelang</span>
               <div style={{ display: 'flex', gap: 8 }}>
-                {[1, 3, 5, 7, 10, 14].map(n => (
-                  <button key={n} onClick={() => setDays(n)} style={{ padding: '9px 16px', borderRadius: 8, border: '1px solid ' + (days === n ? 'var(--ink)' : 'var(--border)'), background: days === n ? 'var(--ink)' : 'var(--surface)', color: days === n ? '#fff' : 'var(--ink)', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
+                {DURATIONS.map(n => (
+                  <button type="button" key={n} onClick={() => setDays(n)} style={{ padding: '9px 16px', borderRadius: 8, border: '1px solid ' + (days === n ? 'var(--ink)' : 'var(--border)'), background: days === n ? 'var(--ink)' : 'var(--surface)', color: days === n ? '#fff' : 'var(--ink)', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
                     {n} hari
                   </button>
                 ))}
@@ -168,12 +178,12 @@ export default function BuatLelangPage() {
             </div>
             <div className="bm-grid-2">
               <div className="bm-field">
-                <label>Mulai</label>
-                <input type="text" defaultValue="Segera setelah dipublikasikan" readOnly style={{ color: 'var(--ink-2)', background: 'var(--surface-2)' }}/>
+                <label htmlFor="auction-start">Mulai</label>
+                <input id="auction-start" type="text" defaultValue="Segera setelah dipublikasikan" readOnly style={{ color: 'var(--ink-2)', background: 'var(--surface-2)' }}/>
               </div>
               <div className="bm-field">
-                <label>Berakhir otomatis pada</label>
-                <input type="text" readOnly value={endDate} style={{ background: 'var(--surface-2)', color: 'var(--ink)', fontWeight: 500 }}/>
+                <label htmlFor="auction-end">Berakhir otomatis pada</label>
+                <input id="auction-end" type="text" readOnly value={endDate} style={{ background: 'var(--surface-2)', color: 'var(--ink)', fontWeight: 500 }}/>
               </div>
             </div>
             <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: 14, background: 'var(--blue-50)', borderRadius: 10, marginTop: 8 }}>
@@ -190,8 +200,8 @@ export default function BuatLelangPage() {
           <div className="bm-section-block">
             <h3><span className="step-num">4</span> Pengiriman</h3>
             <div className="bm-grid-2">
-              <div className="bm-field"><label>Lokasi pengiriman</label><input defaultValue="Jakarta Selatan, DKI Jakarta"/></div>
-              <div className="bm-field"><label>Berat paket (gram)</label><input defaultValue="850"/></div>
+              <div className="bm-field"><label htmlFor="shipping-location">Lokasi pengiriman</label><input id="shipping-location" defaultValue="Jakarta Selatan, DKI Jakarta"/></div>
+              <div className="bm-field"><label htmlFor="package-weight">Berat paket (gram)</label><input id="package-weight" defaultValue="850"/></div>
             </div>
             <div className="bm-field">
               <span className="bm-field-label">Kurir tersedia</span>

@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import type { AuctionItem, Toast, ModalState } from '@/types';
 
 interface AuctionContextValue {
@@ -15,7 +15,11 @@ interface AuctionContextValue {
 
 const AuctionContext = createContext<AuctionContextValue | null>(null);
 
-export function AuctionProvider({ children }: { children: React.ReactNode }) {
+function createToastId() {
+  return globalThis.crypto?.randomUUID?.() ?? `toast-${Date.now()}`;
+}
+
+export function AuctionProvider({ children }: Readonly<{ children: React.ReactNode }>) {
   const [activeItem, setActiveItem] = useState<AuctionItem | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [modal, setModal] = useState<ModalState | null>(null);
@@ -25,7 +29,7 @@ export function AuctionProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addToast = useCallback((t: Omit<Toast, 'id'>) => {
-    const id = Math.random().toString(36).slice(2);
+    const id = createToastId();
     setToasts(prev => [...prev, { ...t, id }]);
     setTimeout(() => dismissToast(id), 4000);
   }, [dismissToast]);
@@ -35,13 +39,14 @@ export function AuctionProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const closeModal = useCallback(() => setModal(null), []);
+  const value = useMemo(() => ({
+    activeItem, setActiveItem,
+    toasts, addToast, dismissToast,
+    modal, openModal, closeModal,
+  }), [activeItem, toasts, addToast, dismissToast, modal, openModal, closeModal]);
 
   return (
-    <AuctionContext.Provider value={{
-      activeItem, setActiveItem,
-      toasts, addToast, dismissToast,
-      modal, openModal, closeModal,
-    }}>
+    <AuctionContext.Provider value={value}>
       {children}
     </AuctionContext.Provider>
   );

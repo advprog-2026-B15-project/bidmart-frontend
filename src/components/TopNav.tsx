@@ -28,9 +28,9 @@ export default function TopNav({ alerts = 3 }: Readonly<TopNavProps>) {
   return (
     <header className="bm-nav-wrap">
       <div className="bm-nav">
-        <div className="bm-nav-brand" onClick={() => router.push('/')}>
+        <button type="button" className="bm-nav-brand" onClick={() => router.push('/')} aria-label="Ke beranda">
           <Logo size={24}/>
-        </div>
+        </button>
         <form
           className="bm-search"
           onSubmit={e => { e.preventDefault(); }}
@@ -69,7 +69,7 @@ export default function TopNav({ alerts = 3 }: Readonly<TopNavProps>) {
               <ChevronDown width={14} height={14} style={{ color: 'var(--ink-3)' }}/>
             </button>
             {userOpen && (
-              <div className="bm-popover" onClick={() => setUserOpen(false)}>
+              <div className="bm-popover">
                 <div className="head">
                   <span className="bm-avatar lg">AR</span>
                   <div>
@@ -77,15 +77,15 @@ export default function TopNav({ alerts = 3 }: Readonly<TopNavProps>) {
                     <div className="em">aulia.r@gmail.com</div>
                   </div>
                 </div>
-                <div className="row" onClick={() => router.push('/wallet')}><Wallet width={16} height={16}/>Dompet saya</div>
-                <div className="row" onClick={() => router.push('/pesanan')}><Package width={16} height={16}/>Pesanan</div>
-                <div className="row" onClick={() => router.push('/notifikasi')}><Bell width={16} height={16}/>Notifikasi</div>
+                <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/wallet'); }}><Wallet width={16} height={16}/>Dompet saya</button>
+                <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/pesanan'); }}><Package width={16} height={16}/>Pesanan</button>
+                <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/notifikasi'); }}><Bell width={16} height={16}/>Notifikasi</button>
                 <div className="sep"/>
-                <div className="row" onClick={() => router.push('/buat-lelang')}><Plus width={16} height={16}/>Jual barang</div>
-                <div className="row" onClick={() => router.push('/admin')}><Shield width={16} height={16}/>Admin dashboard</div>
+                <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/buat-lelang'); }}><Plus width={16} height={16}/>Jual barang</button>
+                <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/admin'); }}><Shield width={16} height={16}/>Admin dashboard</button>
                 <div className="sep"/>
-                <div className="row"><Settings width={16} height={16}/>Pengaturan akun</div>
-                <div className="row danger" onClick={() => router.push('/login')}><LogOut width={16} height={16}/>Keluar</div>
+                <button type="button" className="row" onClick={() => setUserOpen(false)}><Settings width={16} height={16}/>Pengaturan akun</button>
+                <button type="button" className="row danger" onClick={() => { setUserOpen(false); router.push('/login'); }}><LogOut width={16} height={16}/>Keluar</button>
               </div>
             )}
           </div>

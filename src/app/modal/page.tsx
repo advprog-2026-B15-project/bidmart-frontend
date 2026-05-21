@@ -12,7 +12,7 @@ export default function ModalPage() {
     <div style={{ position: 'relative', minHeight: 'calc(100vh - 110px)' }}>
       <div className="bm-page-wide" style={{ pointerEvents: 'none', filter: 'blur(0.5px)', opacity: 0.55 }}>
         <nav className="bm-bread">
-          <a>Beranda</a><span className="sep">/</span><a>Elektronik</a><span className="sep">/</span>
+          <button type="button" onClick={() => router.push('/')}>Beranda</button><span className="sep">/</span><a href="#electronics">Elektronik</a><span className="sep">/</span>
           <span className="here">Sony WH-1000XM5…</span>
         </nav>
         <div className="bm-detail">

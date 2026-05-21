@@ -18,8 +18,9 @@ export default function BidConfirmModal({ open, item, bidAmount, onClose, onConf
   const fee = Math.round(bidAmount * 0.02);
   const total = bidAmount + fee;
   return (
-    <div className="bm-modal-backdrop" onClick={onClose}>
-      <div className="bm-modal" onClick={e => e.stopPropagation()}>
+    <div className="bm-modal-backdrop">
+      <button className="bm-modal-scrim" type="button" aria-label="Tutup modal" onClick={onClose}/>
+      <div className="bm-modal">
         <div className="bm-modal-head">
           <h3>Konfirmasi tawaran kamu</h3>
           <button className="bm-modal-close" onClick={onClose}><X width={20} height={20}/></button>

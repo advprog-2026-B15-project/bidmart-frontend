@@ -16,7 +16,7 @@ export default function AuctionCard({ item, onClick }: Readonly<AuctionCardProps
   const urgent = total < 2 * 60 * 1000 && total > 0;
   const ended = total <= 0;
   return (
-    <div className="bm-listing" onClick={onClick}>
+    <article className="bm-listing">
       <div className="bm-listing-image">
         <div className={`bm-listing-image-fill ${item.art}`}/>
         <button
@@ -31,7 +31,8 @@ export default function AuctionCard({ item, onClick }: Readonly<AuctionCardProps
         )}
         {urgent && <span className="bm-listing-badge bm-listing-badge-red">BERAKHIR</span>}
       </div>
-      <div className="bm-listing-meta">
+      <button type="button" className="bm-listing-card-button" onClick={onClick}>
+        <div className="bm-listing-meta">
         <div className="bm-listing-title">{item.title}</div>
         <div className="bm-listing-price">{fmtRp(item.price)}</div>
         <div className="bm-listing-sub">
@@ -43,7 +44,8 @@ export default function AuctionCard({ item, onClick }: Readonly<AuctionCardProps
         <div className="bm-listing-sub" style={{ marginTop: 2 }}>
           oleh <span style={{ color: 'var(--ink-2)', fontWeight: 500 }}>{item.seller}</span>
         </div>
-      </div>
-    </div>
+        </div>
+      </button>
+    </article>
   );
 }

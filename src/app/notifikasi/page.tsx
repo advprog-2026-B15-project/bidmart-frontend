@@ -77,7 +77,7 @@ export default function NotifikasiPage() {
                 {filtered.map(n => {
                   const { Ico, cls } = iconFor(n.type);
                   return (
-                    <div key={n.id} className={`bm-notif ${n.unread ? 'unread' : ''}`} onClick={() => toggleRead(n.id)}>
+                    <button key={n.id} type="button" className={`bm-notif ${n.unread ? 'unread' : ''}`} onClick={() => toggleRead(n.id)}>
                       <div className={`bm-notif-ico ${cls}`}><Ico width={20} height={20}/></div>
                       <div className="bm-notif-body">
                         <div className="bm-notif-title">
@@ -91,7 +91,7 @@ export default function NotifikasiPage() {
                         {n.unread && <span className="bm-notif-unread-dot"/>}
                         <span>{n.when}</span>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
                 {filtered.length === 0 && (
@@ -134,7 +134,7 @@ export default function NotifikasiPage() {
                 <Switch on={false} onChange={() => {}}/>
               </div>
               <div style={{ paddingTop: 14, marginTop: 6, borderTop: '1px solid var(--border)' }}>
-                <a style={{ fontSize: 13, color: 'var(--blue-600)', cursor: 'pointer' }}>Pengaturan lanjutan →</a>
+                <a href="#advanced-notification-settings" style={{ fontSize: 13, color: 'var(--blue-600)' }}>Pengaturan lanjutan →</a>
               </div>
             </aside>
           </div>

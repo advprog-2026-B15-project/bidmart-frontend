@@ -1,7 +1,6 @@
 'use client';
+import { Suspense, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { Suspense } from 'react';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import StarRating from '@/components/StarRating';
@@ -28,11 +27,11 @@ function DetailContent() {
   return (
     <div className="bm-page-wide">
       <nav className="bm-bread">
-        <a onClick={() => router.push('/')}>Beranda</a>
+        <button type="button" onClick={() => router.push('/')}>Beranda</button>
         <span className="sep">/</span>
-        <a>Elektronik</a>
+        <a href="#electronics">Elektronik</a>
         <span className="sep">/</span>
-        <a>Audio &amp; Headphone</a>
+        <a href="#audio-headphone">Audio &amp; Headphone</a>
         <span className="sep">/</span>
         <span className="here">{it.title.split(' ').slice(0, 3).join(' ')}…</span>
       </nav>
@@ -80,7 +79,7 @@ function DetailContent() {
                 <StarRating rating={it.rating} count={it.ratingCount}/>
               </div>
             </div>
-            <a style={{ fontSize: 13, color: 'var(--blue-600)', cursor: 'pointer' }}>Lihat profil →</a>
+            <a href="#seller-profile" style={{ fontSize: 13, color: 'var(--blue-600)' }}>Lihat profil →</a>
           </div>
 
           <div className="bm-bid-panel">
@@ -108,11 +107,12 @@ function DetailContent() {
             <div className="bm-bid-divider"/>
 
             <div>
-              <label className="bm-bid-lbl" style={{ display: 'block', marginBottom: 8 }}>Tawaran kamu</label>
+              <label htmlFor="bid-amount" className="bm-bid-lbl" style={{ display: 'block', marginBottom: 8 }}>Tawaran kamu</label>
               <div className="bm-bid-input-row">
                 <div className="bm-prefix-input" style={{ flex: 1 }}>
                   <span className="px">Rp</span>
                   <input
+                    id="bid-amount"
                     type="text"
                     value={Number(bidVal.replace(/\D/g, '')).toLocaleString('id-ID')}
                     onChange={e => setBidVal(e.target.value.replace(/\D/g, ''))}
@@ -126,13 +126,13 @@ function DetailContent() {
 
             <Button
               variant="primary" size="lg"
-              onClick={() => openModal(it, parseInt(bidVal.replace(/\D/g, ''), 10) || minNext)}
+              onClick={() => openModal(it, Number.parseInt(bidVal.replace(/\D/g, ''), 10) || minNext)}
               style={{ width: '100%' }}
             >
               Tawar Sekarang
             </Button>
 
-            <a style={{ fontSize: 13, color: 'var(--blue-600)', cursor: 'pointer', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <a href="#auto-bid" style={{ fontSize: 13, color: 'var(--blue-600)', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               <Settings width={14} height={14}/>
               Atur Auto-bid (Proxy Bid)
             </a>

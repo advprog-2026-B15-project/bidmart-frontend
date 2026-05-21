@@ -18,7 +18,7 @@ function statusLabel(s: string) {
 function OrderCard({ order, active, onClick, role }: Readonly<{ order: Order; active: boolean; onClick: () => void; role: string }>) {
   const st = statusLabel(order.status);
   return (
-    <div className={`bm-order-card ${active ? 'active' : ''}`} onClick={onClick}>
+    <button type="button" className={`bm-order-card ${active ? 'active' : ''}`} onClick={onClick}>
       <div className="bm-order-thumb"><div className={order.item.art}/></div>
       <div className="bm-order-body">
         <div className="bm-order-title">{order.item.title}</div>
@@ -34,7 +34,7 @@ function OrderCard({ order, active, onClick, role }: Readonly<{ order: Order; ac
         <span className={`bm-status ${st.cls}`}>{st.lbl}</span>
         <span style={{ fontSize: 11, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}>{order.id}</span>
       </div>
-    </div>
+    </button>
   );
 }
 

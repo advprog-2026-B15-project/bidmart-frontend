@@ -14,7 +14,7 @@ export default function Footer() {
         {cols.map(c => (
           <div className="bm-footer-col" key={c.title}>
             <div className="bm-footer-h">{c.title}</div>
-            {c.links.map(l => <a key={l}>{l}</a>)}
+            {c.links.map(l => <a key={l} href={`#${l.toLowerCase().replaceAll(' ', '-')}`}>{l}</a>)}
           </div>
         ))}
       </div>
