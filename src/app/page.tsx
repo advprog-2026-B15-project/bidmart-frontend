@@ -1,16 +1,28 @@
 'use client';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import AuctionCard from '@/components/AuctionCard';
-import { ITEMS, fmtRp } from '@/lib/data';
+import { fmtRp } from '@/lib/data';
 import { useAuction } from '@/store/auction-context';
+import { getAuctions } from '@/modules/auction/api';
 import type { AuctionItem } from '@/types';
 
 export default function HomePage() {
   const router = useRouter();
   const { setActiveItem } = useAuction();
-  const ending = [...ITEMS].sort((a, b) => a.ends - b.ends);
+  const [auctions, setAuctions] = useState<AuctionItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getAuctions()
+      .then(list => setAuctions(list.sort((a, b) => a.ends - b.ends)))
+      .catch(() => setAuctions([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const ending = auctions;
 
   function goDetail(item: AuctionItem) {
     setActiveItem(item);
@@ -70,9 +82,19 @@ export default function HomePage() {
           <a href="#ending-soon">Lihat semua →</a>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
-          {ending.slice(0, 8).map(it => (
-            <AuctionCard key={it.id} item={it} onClick={() => goDetail(it)}/>
-          ))}
+          {loading
+            ? Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} style={{ height: 260, borderRadius: 12, background: 'var(--surface-2)', animation: 'pulse 1.5s ease-in-out infinite' }}/>
+              ))
+            : ending.slice(0, 8).map(it => (
+                <AuctionCard key={it.id} item={it} onClick={() => goDetail(it)}/>
+              ))
+          }
+          {!loading && ending.length === 0 && (
+            <div style={{ gridColumn: '1/-1', padding: '40px 0', textAlign: 'center', color: 'var(--ink-3)' }}>
+              Tidak ada lelang aktif saat ini.
+            </div>
+          )}
         </div>
       </section>
 
@@ -87,9 +109,14 @@ export default function HomePage() {
           <a href="#recommended">Lihat semua →</a>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
-          {ending.slice(4, 12).map(it => (
-            <AuctionCard key={'r-' + it.id} item={it} onClick={() => goDetail(it)}/>
-          ))}
+          {loading
+            ? Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} style={{ height: 260, borderRadius: 12, background: 'var(--surface-2)', animation: 'pulse 1.5s ease-in-out infinite' }}/>
+              ))
+            : ending.slice(4, 12).map(it => (
+                <AuctionCard key={'r-' + it.id} item={it} onClick={() => goDetail(it)}/>
+              ))
+          }
         </div>
       </section>
     </div>
