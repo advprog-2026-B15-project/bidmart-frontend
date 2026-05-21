@@ -20,8 +20,10 @@ export default function BuatLelangPage() {
   const [cat2, setCat2] = useState('Audio & Video');
   const [cat3, setCat3] = useState('Headphone');
 
+  const [mountTime] = useState<number>(() => Date.now());
   const onlyDigits = (v: string) => v.replace(/\D/g, '');
   const fmtField = (v: string) => Number(onlyDigits(v) || '0').toLocaleString('id-ID');
+  const endDate = new Date(mountTime + days * 86400000).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
   return (
     <div className="bm-page-wide">
@@ -95,15 +97,15 @@ export default function BuatLelangPage() {
                 ))}
               </div>
               <div className="bm-cat-col">
-                {Object.keys((CAT_TREE as any)[cat1] || {}).map((k: string) => (
+                {Object.keys(CAT_TREE[cat1] || {}).map((k: string) => (
                   <div key={k} className={`it ${cat2 === k ? 'active' : ''}`}
-                    onClick={() => { setCat2(k); setCat3(((CAT_TREE as any)[cat1][k])[0]); }}>
+                    onClick={() => { setCat2(k); setCat3((CAT_TREE[cat1][k])[0]); }}>
                     <span>{k}</span><Chevron width={12} height={12}/>
                   </div>
                 ))}
               </div>
               <div className="bm-cat-col">
-                {((CAT_TREE as any)[cat1]?.[cat2] || []).map((k: string) => (
+                {(CAT_TREE[cat1]?.[cat2] || []).map((k: string) => (
                   <div key={k} className={`it ${cat3 === k ? 'active' : ''}`} onClick={() => setCat3(k)}>
                     <span>{k}</span>
                     {cat3 === k && <Check width={14} height={14} style={{ color: 'var(--blue-600)' }}/>}
@@ -168,7 +170,7 @@ export default function BuatLelangPage() {
               </div>
               <div className="bm-field">
                 <label>Berakhir otomatis pada</label>
-                <input type="text" readOnly value={new Date(Date.now() + days * 86400000).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} style={{ background: 'var(--surface-2)', color: 'var(--ink)', fontWeight: 500 }}/>
+                <input type="text" readOnly value={endDate} style={{ background: 'var(--surface-2)', color: 'var(--ink)', fontWeight: 500 }}/>
               </div>
             </div>
             <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: 14, background: 'var(--blue-50)', borderRadius: 10, marginTop: 8 }}>

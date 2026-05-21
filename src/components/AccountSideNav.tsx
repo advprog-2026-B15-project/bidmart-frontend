@@ -6,9 +6,17 @@ interface AccountSideNavProps {
   active: string;
 }
 
+type NavGroup = { group: string };
+type NavItem = { id: string; label: string; ico: React.ReactNode; badge?: number; path?: string };
+type NavEntry = NavGroup | NavItem;
+
+function isGroup(e: NavEntry): e is NavGroup {
+  return 'group' in e;
+}
+
 export default function AccountSideNav({ active }: AccountSideNavProps) {
   const router = useRouter();
-  const items = [
+  const items: NavEntry[] = [
     { group: 'Aktivitas' },
     { id: 'orders',        label: 'Pesanan',         ico: <Package width={16} height={16}/>,  badge: 4,  path: '/pesanan' },
     { id: 'watchlist',     label: 'Watchlist',        ico: <Heart width={16} height={16}/>,    badge: 12 },
@@ -29,8 +37,8 @@ export default function AccountSideNav({ active }: AccountSideNavProps) {
 
   return (
     <nav className="bm-sidenav">
-      {(items as any[]).map((it: any, i: number) =>
-        it.group ? (
+      {items.map((it, i) =>
+        isGroup(it) ? (
           <div key={'g' + i} className="bm-sidenav-h">{it.group}</div>
         ) : (
           <button

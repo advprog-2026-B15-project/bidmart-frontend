@@ -6,9 +6,17 @@ interface AdminSideNavProps {
   active: string;
 }
 
+type NavGroup = { group: string };
+type NavItem = { id: string; label: string; ico: React.ReactNode; badge?: number; path?: string };
+type NavEntry = NavGroup | NavItem;
+
+function isGroup(e: NavEntry): e is NavGroup {
+  return 'group' in e;
+}
+
 export default function AdminSideNav({ active }: AdminSideNavProps) {
   const router = useRouter();
-  const items = [
+  const items: NavEntry[] = [
     { group: 'Overview' },
     { id: 'overview',   label: 'Dashboard',         ico: <Grid width={16} height={16}/> },
     { id: 'metrics',    label: 'Platform metrics',  ico: <TrendUp width={16} height={16}/> },
@@ -30,8 +38,8 @@ export default function AdminSideNav({ active }: AdminSideNavProps) {
 
   return (
     <nav className="bm-sidenav">
-      {(items as any[]).map((it: any, i: number) =>
-        it.group ? (
+      {items.map((it, i) =>
+        isGroup(it) ? (
           <div key={'g' + i} className="bm-sidenav-h">{it.group}</div>
         ) : (
           <button

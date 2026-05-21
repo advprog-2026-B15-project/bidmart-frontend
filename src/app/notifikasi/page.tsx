@@ -8,7 +8,6 @@ import { Check, Gavel, AlertTri, Trophy, Clock, Box, Info } from '@/components/i
 import { NOTIFS } from '@/lib/data';
 import type { Notification } from '@/types';
 
-type NotifType = 'bid' | 'out' | 'won' | 'ending' | 'order';
 
 function iconFor(t: string) {
   switch (t) {
