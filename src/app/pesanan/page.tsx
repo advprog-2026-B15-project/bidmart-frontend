@@ -1,9 +1,17 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import AccountSideNav from '@/components/AccountSideNav';
 import Button from '@/components/ui/Button';
 import { Check, AlertTri, Truck, Star } from '@/components/icons';
-import { ORDERS, fmtRp } from '@/lib/data';
+import { fmtRp } from '@/lib/data';
+import {
+  getMyBookings,
+  getMySellingBookings,
+  updateShipment,
+  confirmDelivery,
+  fileDispute,
+} from '@/modules/booking/api';
+import { getToken } from '@/lib/api';
 import type { Order, TrackingEvent } from '@/types';
 
 function statusLabel(s: string) {
@@ -38,14 +46,25 @@ function OrderCard({ order, active, onClick, role }: Readonly<{ order: Order; ac
   );
 }
 
-function OrderDetail({ order, role, trackingNum, setTrackingNum }: Readonly<{ order: Order; role: string; trackingNum: string; setTrackingNum: (v: string) => void }>) {
+function OrderDetail({
+  order, role, trackingNum, setTrackingNum, courierName, setCourierName, onAction,
+}: Readonly<{
+  order: Order;
+  role: string;
+  trackingNum: string;
+  setTrackingNum: (v: string) => void;
+  courierName: string;
+  setCourierName: (v: string) => void;
+  onAction: (action: string) => void;
+}>) {
   const steps = [
-    { key: 0, lbl: 'Won',       when: order.when?.replace('Dimenangkan ', '') },
-    { key: 1, lbl: 'Packaging', when: order.status === 'wait' ? 'Menunggu' : '16 Mei' },
-    { key: 2, lbl: 'Shipped',   when: ['ship', 'recv'].includes(order.status) ? 'Kemarin' : '—' },
-    { key: 3, lbl: 'Delivered', when: order.status === 'recv' ? '1 Mei' : order.status === 'disp' ? 'Belum tiba' : '—' },
-    { key: 4, lbl: 'Confirmed', when: order.status === 'recv' ? '1 Mei' : '—' },
+    { key: 0, lbl: 'Won',       when: order.when?.replace('Dibuat ', '') },
+    { key: 1, lbl: 'Packaging', when: order.status === 'wait' ? 'Menunggu' : '-' },
+    { key: 2, lbl: 'Shipped',   when: ['ship', 'recv'].includes(order.status) ? order.tracking?.lastUpd ?? '-' : '—' },
+    { key: 3, lbl: 'Delivered', when: order.status === 'recv' ? '-' : order.status === 'disp' ? 'Belum tiba' : '—' },
+    { key: 4, lbl: 'Confirmed', when: order.status === 'recv' ? '-' : '—' },
   ];
+
   return (
     <div className="bm-orderdetail">
       <div className="bm-order-hero">
@@ -83,17 +102,15 @@ function OrderDetail({ order, role, trackingNum, setTrackingNum }: Readonly<{ or
       </div>
 
       {order.status === 'ship' && order.tracking && (
-        <>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Informasi pengiriman</div>
-            <div className="bm-tracking-row">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Truck width={20} height={20} style={{ color: 'var(--blue-600)' }}/>
-                <span className="courier">{order.tracking.courier}</span>
-              </div>
-              <span className="num">{order.tracking.num}</span>
-              <span style={{ flex: 1, textAlign: 'right', color: 'var(--ink-3)', fontSize: 12 }}>{order.tracking.lastUpd}</span>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Informasi pengiriman</div>
+          <div className="bm-tracking-row">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Truck width={20} height={20} style={{ color: 'var(--blue-600)' }}/>
+              <span className="courier">{order.tracking.courier}</span>
             </div>
+            <span className="num">{order.tracking.num}</span>
+            <span style={{ flex: 1, textAlign: 'right', color: 'var(--ink-3)', fontSize: 12 }}>{order.tracking.lastUpd}</span>
           </div>
           {order.history && (
             <div className="bm-tracking-history">
@@ -106,20 +123,43 @@ function OrderDetail({ order, role, trackingNum, setTrackingNum }: Readonly<{ or
               ))}
             </div>
           )}
-        </>
+        </div>
       )}
 
       {role === 'seller' && order.status === 'wait' && (
         <div>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Input nomor resi</div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <select className="bm-select" style={{ flex: '0 0 160px', height: 42 }}>
-              <option>JNE Express</option><option>J&amp;T Express</option><option>SiCepat</option><option>Anteraja</option>
+            <select
+              className="bm-select"
+              style={{ flex: '0 0 160px', height: 42 }}
+              value={courierName}
+              onChange={e => setCourierName(e.target.value)}
+            >
+              <option>JNE Express</option>
+              <option>J&T Express</option>
+              <option>SiCepat</option>
+              <option>Anteraja</option>
             </select>
-            <input className="bm-input" placeholder="Nomor resi" style={{ flex: 1, height: 42, fontSize: 14, fontFamily: 'var(--font-mono)' }} value={trackingNum} onChange={e => setTrackingNum(e.target.value)}/>
-            <Button variant="primary" size="lg" disabled={!trackingNum}>Update Status</Button>
+            <input
+              className="bm-input"
+              placeholder="Nomor resi"
+              style={{ flex: 1, height: 42, fontSize: 14, fontFamily: 'var(--font-mono)' }}
+              value={trackingNum}
+              onChange={e => setTrackingNum(e.target.value)}
+            />
+            <Button
+              variant="primary"
+              size="lg"
+              disabled={!trackingNum}
+              onClick={() => onAction('ship')}
+            >
+              Update Status
+            </Button>
           </div>
-          <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 8 }}>Pembeli akan mendapat notifikasi otomatis dan dapat melacak pengiriman.</div>
+          <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 8 }}>
+            Pembeli akan mendapat notifikasi otomatis.
+          </div>
         </div>
       )}
 
@@ -130,11 +170,7 @@ function OrderDetail({ order, role, trackingNum, setTrackingNum }: Readonly<{ or
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--red-700)' }}>Sengketa terbuka</div>
               <div style={{ fontSize: 13, color: 'var(--ink-2)', marginTop: 4, lineHeight: 1.5 }}>
-                Karpet dilaporkan tidak sesuai deskripsi (warna lebih pudar dari foto, ada bekas noda di sudut). Sedang diinvestigasi oleh tim BidMart Trust &amp; Safety. Respons biasanya dalam 2 hari kerja.
-              </div>
-              <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
-                <Button variant="primary" size="sm">Tambah bukti</Button>
-                <Button variant="ghost" size="sm">Lihat thread</Button>
+                Pesanan ini sedang dalam sengketa. Sedang diinvestigasi oleh tim BidMart Trust & Safety.
               </div>
             </div>
           </div>
@@ -143,13 +179,18 @@ function OrderDetail({ order, role, trackingNum, setTrackingNum }: Readonly<{ or
 
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', paddingTop: 4 }}>
         {role === 'buyer' && order.status === 'ship' && (
-          <><Button variant="ghost" size="md">Buka sengketa</Button><Button variant="primary" size="md" leftIcon={<Check width={16} height={16}/>}>Konfirmasi Barang Diterima</Button></>
-        )}
-        {role === 'buyer' && order.status === 'wait' && (
-          <><Button variant="ghost" size="md">Batalkan pesanan</Button><Button variant="secondary" size="md">Pesan penjual</Button></>
+          <>
+            <Button variant="ghost" size="md" onClick={() => onAction('dispute')}>Buka sengketa</Button>
+            <Button variant="primary" size="md" leftIcon={<Check width={16} height={16}/>} onClick={() => onAction('confirm')}>
+              Konfirmasi Barang Diterima
+            </Button>
+          </>
         )}
         {role === 'buyer' && order.status === 'recv' && (
-          <><Button variant="ghost" size="md">Buka sengketa</Button><Button variant="primary" size="md" leftIcon={<Star width={16} height={16}/>}>Beri ulasan</Button></>
+          <Button variant="ghost" size="md" onClick={() => onAction('dispute')}>Buka sengketa</Button>
+        )}
+        {role === 'buyer' && order.status === 'recv' && (
+          <Button variant="primary" size="md" leftIcon={<Star width={16} height={16}/>}>Beri ulasan</Button>
         )}
       </div>
     </div>
@@ -158,20 +199,61 @@ function OrderDetail({ order, role, trackingNum, setTrackingNum }: Readonly<{ or
 
 export default function PesananPage() {
   const [tab, setTab] = useState<'active' | 'completed' | 'disputes'>('active');
-  const [openOrder, setOpenOrder] = useState<Order>(ORDERS[0]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [openOrder, setOpenOrder] = useState<Order | null>(null);
   const [trackingNum, setTrackingNum] = useState('');
+  const [courierName, setCourierName] = useState('JNE Express');
   const [role, setRole] = useState<'buyer' | 'seller'>('buyer');
 
-  const filtered = ORDERS.filter(o => {
+  const fetchOrders = useCallback(async () => {
+    if (!getToken()) { setLoading(false); return; }
+    setLoading(true);
+    try {
+      const data = role === 'buyer'
+        ? await getMyBookings()
+        : await getMySellingBookings();
+      setOrders(data);
+      if (data.length > 0) setOpenOrder(data[0]);
+    } catch {
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [role]);
+
+  useEffect(() => { fetchOrders(); }, [fetchOrders]);
+
+  async function handleAction(action: string) {
+    if (!openOrder) return;
+    try {
+      if (action === 'ship') {
+        await updateShipment(openOrder.id, courierName, trackingNum);
+        setTrackingNum('');
+      } else if (action === 'confirm') {
+        await confirmDelivery(openOrder.id);
+      } else if (action === 'dispute') {
+        const reason = window.prompt('Alasan sengketa:');
+        if (!reason) return;
+        await fileDispute(openOrder.id, reason);
+      }
+      await fetchOrders();
+    } catch (err) {
+      alert((err as Error).message);
+    }
+  }
+
+  const filtered = orders.filter(o => {
     if (tab === 'active') return ['wait', 'ship'].includes(o.status);
     if (tab === 'completed') return o.status === 'recv';
     if (tab === 'disputes') return o.status === 'disp';
     return true;
   });
+
   const counts = {
-    active:    ORDERS.filter(o => ['wait', 'ship'].includes(o.status)).length,
-    completed: ORDERS.filter(o => o.status === 'recv').length,
-    disputes:  ORDERS.filter(o => o.status === 'disp').length,
+    active:    orders.filter(o => ['wait', 'ship'].includes(o.status)).length,
+    completed: orders.filter(o => o.status === 'recv').length,
+    disputes:  orders.filter(o => o.status === 'disp').length,
   };
 
   return (
@@ -185,8 +267,18 @@ export default function PesananPage() {
               <p>Pantau status, lacak pengiriman, dan kelola sengketa.</p>
             </div>
             <div className="bm-tabpills" style={{ margin: 0 }}>
-              <button className={`bm-tabpill ${role === 'buyer' ? 'active' : ''}`} onClick={() => setRole('buyer')}>Sebagai Pembeli</button>
-              <button className={`bm-tabpill ${role === 'seller' ? 'active' : ''}`} onClick={() => setRole('seller')}>Sebagai Penjual</button>
+              <button
+                className={`bm-tabpill ${role === 'buyer' ? 'active' : ''}`}
+                onClick={() => setRole('buyer')}
+              >
+                Sebagai Pembeli
+              </button>
+              <button
+                className={`bm-tabpill ${role === 'seller' ? 'active' : ''}`}
+                onClick={() => setRole('seller')}
+              >
+                Sebagai Penjual
+              </button>
             </div>
           </div>
 
@@ -199,19 +291,45 @@ export default function PesananPage() {
             ))}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 24, alignItems: 'flex-start' }}>
-            <div className="bm-orders-list">
-              {filtered.map(o => (
-                <OrderCard key={o.id} order={o} active={openOrder.id === o.id} onClick={() => setOpenOrder(o)} role={role}/>
-              ))}
-              {filtered.length === 0 && (
-                <div style={{ textAlign: 'center', color: 'var(--ink-3)', padding: '40px 20px', border: '1px dashed var(--border-strong)', borderRadius: 12 }}>
-                  Tidak ada pesanan di kategori ini.
-                </div>
+          {loading ? (
+            <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--ink-3)' }}>
+              Memuat pesanan...
+            </div>
+          ) : !getToken() ? (
+            <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--ink-3)' }}>
+              Silakan <a href="/login" style={{ color: 'var(--blue-600)' }}>masuk</a> untuk melihat pesanan.
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 24, alignItems: 'flex-start' }}>
+              <div className="bm-orders-list">
+                {filtered.map(o => (
+                  <OrderCard
+                    key={o.id}
+                    order={o}
+                    active={openOrder?.id === o.id}
+                    onClick={() => setOpenOrder(o)}
+                    role={role}
+                  />
+                ))}
+                {filtered.length === 0 && (
+                  <div style={{ textAlign: 'center', color: 'var(--ink-3)', padding: '40px 20px', border: '1px dashed var(--border-strong)', borderRadius: 12 }}>
+                    Tidak ada pesanan di kategori ini.
+                  </div>
+                )}
+              </div>
+              {openOrder && (
+                <OrderDetail
+                  order={openOrder}
+                  role={role}
+                  trackingNum={trackingNum}
+                  setTrackingNum={setTrackingNum}
+                  courierName={courierName}
+                  setCourierName={setCourierName}
+                  onAction={handleAction}
+                />
               )}
             </div>
-            <OrderDetail order={openOrder} role={role} trackingNum={trackingNum} setTrackingNum={setTrackingNum}/>
-          </div>
+          )}
         </div>
       </div>
     </div>
