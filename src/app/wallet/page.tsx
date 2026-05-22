@@ -6,7 +6,8 @@ import { Wallet, Clock, ArrowUp, Plus, Filter } from '@/components/icons';
 import { fmtRp } from '@/lib/data';
 import { Gavel, ArrowDown, CreditCard, Refresh } from '@/components/icons';
 import { getWallet, getTransactions, topUp, withdraw, type WalletData, type WalletTransaction } from '@/modules/wallet/api';
-import { getCurrentUserId, getToken } from '@/lib/api';
+import { getCurrentUserId } from '@/lib/api';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 
 const TYPE_LABEL: Record<string, string> = {
   TOP_UP: 'Top Up',
@@ -34,16 +35,18 @@ function fmtDate(iso: string) {
 }
 
 export default function WalletPage() {
+  const isAuth = useRequireAuth();
   const [typeFilter, setTypeFilter] = useState('All');
   const [page, setPage] = useState(1);
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [txns, setTxns] = useState<WalletTransaction[]>([]);
-  const [loading, setLoading] = useState(() => !!(getToken() && getCurrentUserId()));
+  const [loading, setLoading] = useState(true);
   const perPage = 8;
 
   useEffect(() => {
+    if (!isAuth) return;
     const userId = getCurrentUserId();
-    if (!getToken() || !userId) return;
+    if (!userId) return;
     Promise.all([
       getWallet(userId),
       getTransactions(userId, 0, 100),
@@ -51,7 +54,7 @@ export default function WalletPage() {
       setWallet(w);
       setTxns(t.content ?? []);
     }).catch(() => {}).finally(() => setLoading(false));
-  }, []);
+  }, [isAuth]);
 
   async function handleTopUp() {
     const amtStr = window.prompt('Jumlah top up (Rp):');
@@ -100,20 +103,14 @@ export default function WalletPage() {
               <h1>Dompet BidMart</h1>
               <p>Kelola saldo, top up, dan pantau riwayat transaksi kamu.</p>
             </div>
-            {getToken() && (
-              <div className="bm-row" style={{ gap: 10 }}>
-                <Button variant="secondary" size="md" leftIcon={<ArrowUp width={16} height={16}/>} onClick={handleWithdraw}>Tarik dana</Button>
-                <Button variant="primary" size="md" leftIcon={<Plus width={16} height={16}/>} onClick={handleTopUp}>Top Up</Button>
-              </div>
-            )}
+            <div className="bm-row" style={{ gap: 10 }}>
+              <Button variant="secondary" size="md" leftIcon={<ArrowUp width={16} height={16}/>} onClick={handleWithdraw}>Tarik dana</Button>
+              <Button variant="primary" size="md" leftIcon={<Plus width={16} height={16}/>} onClick={handleTopUp}>Top Up</Button>
+            </div>
           </div>
 
           {loading ? (
             <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--ink-3)' }}>Memuat dompet...</div>
-          ) : !getToken() ? (
-            <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--ink-3)' }}>
-              Silakan <a href="/login" style={{ color: 'var(--blue-600)' }}>masuk</a> untuk melihat dompet.
-            </div>
           ) : (
             <>
               <div className="bm-walletcards">

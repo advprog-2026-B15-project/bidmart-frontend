@@ -11,7 +11,7 @@ import {
   confirmDelivery,
   fileDispute,
 } from '@/modules/booking/api';
-import { getToken } from '@/lib/api';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import type { Order, TrackingEvent } from '@/types';
 
 function statusLabel(s: string) {
@@ -198,6 +198,7 @@ function OrderDetail({
 }
 
 export default function PesananPage() {
+  useRequireAuth();
   const [tab, setTab] = useState<'active' | 'completed' | 'disputes'>('active');
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -207,7 +208,6 @@ export default function PesananPage() {
   const [role, setRole] = useState<'buyer' | 'seller'>('buyer');
 
   const fetchOrders = useCallback(async () => {
-    if (!getToken()) { setLoading(false); return; }
     setLoading(true);
     try {
       const data = role === 'buyer'
@@ -294,10 +294,6 @@ export default function PesananPage() {
           {loading ? (
             <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--ink-3)' }}>
               Memuat pesanan...
-            </div>
-          ) : !getToken() ? (
-            <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--ink-3)' }}>
-              Silakan <a href="/login" style={{ color: 'var(--blue-600)' }}>masuk</a> untuk melihat pesanan.
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 24, alignItems: 'flex-start' }}>

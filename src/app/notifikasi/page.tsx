@@ -6,7 +6,7 @@ import Badge from '@/components/ui/Badge';
 import Switch from '@/components/ui/Switch';
 import { Check, Gavel, AlertTri, Trophy, Clock, Box, Info } from '@/components/icons';
 import { getMyNotifications, markNotificationRead, getNotificationPreferences, updateNotificationPreferences } from '@/modules/booking/api';
-import { getToken } from '@/lib/api';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import type { Notification } from '@/types';
 
 function iconFor(t: string) {
@@ -21,6 +21,7 @@ function iconFor(t: string) {
 }
 
 export default function NotifikasiPage() {
+  useRequireAuth();
   const [tab, setTab] = useState<'all' | 'bids' | 'auctions' | 'orders'>('all');
   const [emailOn, setEmailOn] = useState(false);
   const [inAppOn, setInAppOn] = useState(true);
@@ -28,8 +29,6 @@ export default function NotifikasiPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!getToken()) { setLoading(false); return; }
-
     async function load() {
       try {
         const [notifs, prefs] = await Promise.all([
@@ -126,10 +125,6 @@ export default function NotifikasiPage() {
                 {loading ? (
                   <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--ink-3)' }}>
                     Memuat notifikasi...
-                  </div>
-                ) : !getToken() ? (
-                  <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--ink-3)' }}>
-                    Silakan <a href="/login" style={{ color: 'var(--blue-600)' }}>masuk</a> untuk melihat notifikasi.
                   </div>
                 ) : filtered.length === 0 ? (
                   <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--ink-3)' }}>
