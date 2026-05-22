@@ -11,6 +11,7 @@ type ModeSetter = Dispatch<SetStateAction<AuthMode>>;
 type OtpRefs = { current: (HTMLInputElement | null)[] };
 
 const OTP_POSITIONS = [0, 1, 2, 3, 4, 5];
+const GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? 'https://bidmart-b15.duckdns.org';
 const linkButtonStyle = {
   background: 'transparent',
   border: 0,
@@ -187,22 +188,25 @@ function RegisterForm({
   onSubmit,
   onSignIn,
 }: Readonly<{
-  onSubmit: () => void;
+  onSubmit: (email: string, username: string, password: string) => void;
   onSignIn: () => void;
 }>) {
+  const emailRef = useRef<HTMLInputElement>(null);
+  const usernameRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+
   return (
-    <form onSubmit={e => { e.preventDefault(); onSubmit(); }}>
-      <div className="bm-grid-2">
-        <div className="bm-field"><label htmlFor="first-name">Nama depan</label><input id="first-name" placeholder="Aulia"/></div>
-        <div className="bm-field"><label htmlFor="last-name">Nama belakang</label><input id="last-name" placeholder="Ramadhan"/></div>
-      </div>
-      <div className="bm-field"><label htmlFor="register-email">Email</label><input id="register-email" type="email" placeholder="kamu@email.com"/></div>
+    <form onSubmit={e => {
+      e.preventDefault();
+      onSubmit(emailRef.current?.value ?? '', usernameRef.current?.value ?? '', passwordRef.current?.value ?? '');
+    }}>
+      <div className="bm-field"><label htmlFor="register-username">Username</label><input ref={usernameRef} id="register-username" placeholder="aulia_ramadhan"/></div>
+      <div className="bm-field"><label htmlFor="register-email">Email</label><input ref={emailRef} id="register-email" type="email" placeholder="kamu@email.com"/></div>
       <div className="bm-field">
         <label htmlFor="register-password">Password</label>
-        <input id="register-password" type="password" placeholder="Minimal 10 karakter"/>
+        <input ref={passwordRef} id="register-password" type="password" placeholder="Minimal 8 karakter"/>
         <span className="hint">Gunakan campuran huruf, angka, dan simbol.</span>
       </div>
-      <div className="bm-field"><label htmlFor="confirm-password">Konfirmasi password</label><input id="confirm-password" type="password" placeholder="Ketik ulang password"/></div>
       <div className="bm-field-row" style={{ alignItems: 'flex-start' }}>
         <label>
           <input type="checkbox"/>
@@ -224,22 +228,22 @@ function AuthPanel({
   showPw,
   togglePassword,
   onLoginSubmit,
+  onRegisterSubmit,
 }: Readonly<{
   mode: Exclude<AuthMode, 'otp'>;
   setMode: ModeSetter;
   showPw: boolean;
   togglePassword: () => void;
   onLoginSubmit: (email: string, password: string) => void;
+  onRegisterSubmit: (email: string, username: string, password: string) => void;
 }>) {
-  const showOtp = () => setMode('otp');
-
   return (
     <>
       <AuthIntro mode={mode}/>
       <AuthTabs mode={mode} setMode={setMode}/>
       {mode === 'signin'
         ? <SignInForm showPw={showPw} onTogglePassword={togglePassword} onSubmit={onLoginSubmit} onRegister={() => setMode('register')}/>
-        : <RegisterForm onSubmit={showOtp} onSignIn={() => setMode('signin')}/>}
+        : <RegisterForm onSubmit={onRegisterSubmit} onSignIn={() => setMode('signin')}/>}
     </>
   );
 }
@@ -260,6 +264,7 @@ export default function LoginPage() {
   const [mode, setMode] = useState<AuthMode>('signin');
   const [showPw, setShowPw] = useState(false);
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [mfaToken, setMfaToken] = useState('');
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
   const togglePassword = () => setShowPw(p => !p);
   const goToHome = () => router.push('/');
@@ -267,21 +272,56 @@ export default function LoginPage() {
 
   async function handleLogin(email: string, password: string) {
     try {
-      const GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? 'https://bidmart-b15.duckdns.org';
       const res = await fetch(`${GATEWAY_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
       if (!res.ok) { alert('Email atau password salah.'); return; }
-      const data = await res.json() as Record<string, string>;
-      const token = data['token'] ?? data['accessToken'] ?? data['access_token'] ?? '';
-      const userId = data['userId'] ?? data['user_id'] ?? data['id'] ?? email;
-      const role = data['role'] ?? 'BUYER';
-      setToken(token, userId, role);
-      setMode('otp');
+      const data = await res.json() as { accessToken?: string; mfaRequired?: boolean; mfaToken?: string; role?: string };
+      if (data.mfaRequired && data.mfaToken) {
+        setMfaToken(data.mfaToken);
+        setMode('otp');
+      } else {
+        const token = data.accessToken ?? '';
+        setToken(token, email, data.role ?? 'BUYER');
+        goToHome();
+      }
     } catch {
       alert('Gagal menghubungi server. Coba lagi.');
+    }
+  }
+
+  async function handleRegister(email: string, username: string, password: string) {
+    try {
+      const res = await fetch(`${GATEWAY_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, username, password }),
+      });
+      if (!res.ok) { alert('Registrasi gagal. Cek email dan password kamu.'); return; }
+      alert('Registrasi berhasil! Silakan masuk.');
+      setMode('signin');
+    } catch {
+      alert('Gagal menghubungi server. Coba lagi.');
+    }
+  }
+
+  async function handleOtpVerify() {
+    const code = otp.join('');
+    if (code.length < 6) { alert('Masukkan 6 digit kode OTP.'); return; }
+    try {
+      const res = await fetch(`${GATEWAY_URL}/api/auth/2fa/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mfaToken, code }),
+      });
+      if (!res.ok) { alert('Kode OTP salah atau kadaluarsa.'); return; }
+      const data = await res.json() as { accessToken?: string; role?: string };
+      setToken(data.accessToken ?? '', '', data.role ?? 'BUYER');
+      goToHome();
+    } catch {
+      alert('Gagal verifikasi OTP.');
     }
   }
 
@@ -290,8 +330,8 @@ export default function LoginPage() {
       <div className="bm-auth-logo"><Logo size={30}/></div>
       <div className="bm-auth-card">
         {mode === 'otp'
-          ? <OtpPanel otp={otp} setOtp={setOtp} otpRefs={otpRefs} onBack={goToSignIn} onVerify={goToHome}/>
-          : <AuthPanel mode={mode} setMode={setMode} showPw={showPw} togglePassword={togglePassword} onLoginSubmit={handleLogin}/>}
+          ? <OtpPanel otp={otp} setOtp={setOtp} otpRefs={otpRefs} onBack={goToSignIn} onVerify={handleOtpVerify}/>
+          : <AuthPanel mode={mode} setMode={setMode} showPw={showPw} togglePassword={togglePassword} onLoginSubmit={handleLogin} onRegisterSubmit={handleRegister}/>}
       </div>
       <AuthFooterLinks/>
     </div>
