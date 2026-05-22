@@ -51,11 +51,16 @@ export function getEmail(): string | null {
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
+  const userId = getCurrentUserId();
+  const role = getCurrentRole();
+
   const headers: Record<string, string> = {
     ...(options.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
     ...(options.headers as Record<string, string> ?? {}),
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (userId) headers['X-User-Id'] = userId;
+  if (role) headers['X-User-Role'] = role;
 
   const res = await fetch(`${GATEWAY_URL}${path}`, { ...options, headers });
 
