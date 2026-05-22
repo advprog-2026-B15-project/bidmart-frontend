@@ -46,18 +46,19 @@ export default function BuatLelangPage() {
     setErrorMsg('');
     try {
       const endTime = new Date(mountTime + days * 86400000).toISOString();
+      const reserveVal = reserve ? Number(onlyDigits(reserve)) : 0;
       const listing = await createListing({
         title,
         description: desc,
         startingPrice: Number(onlyDigits(startPrice)),
-        reservePrice: reserve ? Number(onlyDigits(reserve)) : undefined,
+        reservePrice: reserveVal || undefined,
         endTime,
       });
       const auction = await createAuction({
         listingId: listing.id,
         title,
         startingPrice: Number(onlyDigits(startPrice)),
-        reservePrice: reserve ? Number(onlyDigits(reserve)) : undefined,
+        reservePrice: reserveVal,
         minimumIncrement: Number(onlyDigits(increment)) || 50_000,
         endTime,
       });

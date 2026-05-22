@@ -38,12 +38,12 @@ export default function WalletPage() {
   const [page, setPage] = useState(1);
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [txns, setTxns] = useState<WalletTransaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !!(getToken() && getCurrentUserId()));
   const perPage = 8;
 
   useEffect(() => {
     const userId = getCurrentUserId();
-    if (!getToken() || !userId) { setLoading(false); return; }
+    if (!getToken() || !userId) return;
     Promise.all([
       getWallet(userId),
       getTransactions(userId, 0, 100),
