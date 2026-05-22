@@ -1,5 +1,14 @@
 const GATEWAY_URL = '/api/proxy';
 
+function decodeJwtPayload(token: string): Record<string, unknown> {
+  try {
+    const payload = token.split('.')[1];
+    return JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+  } catch {
+    return {};
+  }
+}
+
 export function getToken(): string | null {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem('bidmart_token');
@@ -9,12 +18,15 @@ export function setToken(token: string, userId: string, role: string): void {
   localStorage.setItem('bidmart_token', token);
   localStorage.setItem('bidmart_user_id', userId);
   localStorage.setItem('bidmart_role', role);
+  const payload = decodeJwtPayload(token);
+  const username = (payload['username'] as string) || (payload['preferred_username'] as string) || (payload['name'] as string) || '';
+  const email = (payload['email'] as string) || userId;
+  localStorage.setItem('bidmart_username', username);
+  localStorage.setItem('bidmart_email', email);
 }
 
 export function clearToken(): void {
-  localStorage.removeItem('bidmart_token');
-  localStorage.removeItem('bidmart_user_id');
-  localStorage.removeItem('bidmart_role');
+  ['bidmart_token', 'bidmart_user_id', 'bidmart_role', 'bidmart_username', 'bidmart_email'].forEach(k => localStorage.removeItem(k));
 }
 
 export function getCurrentUserId(): string | null {
@@ -25,6 +37,16 @@ export function getCurrentUserId(): string | null {
 export function getCurrentRole(): string | null {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem('bidmart_role');
+}
+
+export function getUsername(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('bidmart_username') || localStorage.getItem('bidmart_user_id');
+}
+
+export function getEmail(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('bidmart_email') || localStorage.getItem('bidmart_user_id');
 }
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {

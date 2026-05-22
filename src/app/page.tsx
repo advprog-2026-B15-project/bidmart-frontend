@@ -7,6 +7,7 @@ import AuctionCard from '@/components/AuctionCard';
 import { fmtRp } from '@/lib/data';
 import { useAuction } from '@/store/auction-context';
 import { getAuctions } from '@/modules/auction/api';
+import { getUsername } from '@/lib/api';
 import type { AuctionItem } from '@/types';
 
 export default function HomePage() {
@@ -14,6 +15,12 @@ export default function HomePage() {
   const { setActiveItem } = useAuction();
   const [auctions, setAuctions] = useState<AuctionItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [username, setUsername] = useState<string | null>(null);
+
+  useEffect(() => {
+    const name = getUsername();
+    if (name) setUsername(name.includes('@') ? name.split('@')[0] : name);
+  }, []);
 
   useEffect(() => {
     getAuctions()
@@ -101,7 +108,7 @@ export default function HomePage() {
       <section className="bm-section">
         <div className="bm-section-head">
           <div>
-            <h2>Pilihan untuk Aulia</h2>
+            <h2>Pilihan untuk {username ?? 'Kamu'}</h2>
             <p style={{ color: 'var(--ink-3)', fontSize: 13, marginTop: 4 }}>
               Berdasarkan kategori yang sering kamu lihat.
             </p>

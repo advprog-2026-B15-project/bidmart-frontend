@@ -118,10 +118,9 @@ export async function activateAuction(auctionId: string): Promise<AuctionRespons
   });
 }
 
-// SSE stream URL — use with EventSource (public endpoint, no auth needed)
+// SSE stream URL — use with EventSource (routes through Vercel proxy)
 export function getAuctionStreamUrl(auctionId: string): string {
-  const base = process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? 'https://bidmart-b15.duckdns.org';
-  return `${base}${API.auction.stream(auctionId)}`;
+  return `/api/proxy${API.auction.stream(auctionId)}`;
 }
 
 // Raw auction data (for detail page — includes minimumIncrement)

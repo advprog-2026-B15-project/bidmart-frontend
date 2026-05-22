@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import Switch from '@/components/ui/Switch';
@@ -16,7 +16,33 @@ const DURATIONS = [1, 3, 5, 7, 10, 14];
 export default function BuatLelangPage() {
   useRequireAuth();
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const targetSlotRef = useRef<number | null>(null);
   const [imgs, setImgs] = useState<(string | null)[]>([null, null, null, null, null, null]);
+
+  function openFilePicker(slot: number | null) {
+    targetSlotRef.current = slot;
+    if (fileInputRef.current) {
+      fileInputRef.current.multiple = slot === null;
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  }
+
+  function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    let startSlot = targetSlotRef.current ?? imgs.findIndex(s => s === null);
+    if (startSlot === -1) startSlot = 0;
+    files.forEach((file, i) => {
+      const slot = (startSlot + i) % PHOTO_SLOTS.length;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        setImgs(prev => { const copy = [...prev]; copy[slot] = ev.target?.result as string; return copy; });
+      };
+      reader.readAsDataURL(file);
+    });
+  }
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
   const [startPrice, setStartPrice] = useState('');
@@ -98,7 +124,32 @@ export default function BuatLelangPage() {
         <div className="bm-create-form">
           <div className="bm-section-block">
             <h3><span className="step-num">1</span> Foto produk</h3>
-            <div className="bm-upload">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              style={{ display: 'none' }}
+              onChange={handleFiles}
+            />
+            <div
+              className="bm-upload"
+              style={{ cursor: 'pointer' }}
+              onClick={() => openFilePicker(null)}
+              onDragOver={e => e.preventDefault()}
+              onDrop={e => {
+                e.preventDefault();
+                const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+                if (!files.length) return;
+                let slot = imgs.findIndex(s => s === null);
+                if (slot === -1) slot = 0;
+                files.forEach((file, i) => {
+                  const s = (slot + i) % PHOTO_SLOTS.length;
+                  const reader = new FileReader();
+                  reader.onload = ev => setImgs(prev => { const copy = [...prev]; copy[s] = ev.target?.result as string; return copy; });
+                  reader.readAsDataURL(file);
+                });
+              }}
+            >
               <Upload width={28} height={28}/>
               <div className="t">Tarik foto ke sini atau klik untuk pilih</div>
               <div className="s">JPG, PNG, atau WEBP — maksimum 12 foto, ukuran 8 MB per foto</div>
@@ -107,11 +158,11 @@ export default function BuatLelangPage() {
               {PHOTO_SLOTS.map(slot => {
                 const art = imgs[slot];
                 return (
-                  <div key={slot} className={`bm-upload-thumb ${slot === 0 && art ? 'main' : ''}`}>
+                  <div key={slot} className={`bm-upload-thumb ${slot === 0 && art ? 'main' : ''}`} style={{ cursor: 'pointer' }} onClick={() => !art && openFilePicker(slot)}>
                     {art ? (
                       <>
-                        <div className={art} style={{ width: '100%', height: '100%' }}/>
-                        <button className="x" onClick={() => { const next = [...imgs]; next[slot] = null; setImgs(next); }}>×</button>
+                        <img src={art} alt={`Foto ${slot + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 6 }}/>
+                        <button className="x" onClick={e => { e.stopPropagation(); const next = [...imgs]; next[slot] = null; setImgs(next); }}>×</button>
                       </>
                     ) : (
                       <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, color: 'var(--ink-4)', background: 'var(--surface-2)' }}>
@@ -233,7 +284,11 @@ export default function BuatLelangPage() {
           <div className="bm-preview-h">Pratinjau listing</div>
           <div className="bm-preview-card">
             <div className="bm-listing-image" style={{ borderRadius: 8 }}>
-              <div className={`bm-listing-image-fill ${imgs[0] || 'bm-art-elec'}`}/>
+              {imgs[0] ? (
+                <img src={imgs[0]} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }}/>
+              ) : (
+                <div className="bm-listing-image-fill bm-art-elec"/>
+              )}
               <span className="bm-listing-badge bm-listing-badge-amber">BARU</span>
             </div>
             <div className="bm-listing-meta" style={{ padding: '12px 4px 0' }}>
