@@ -11,7 +11,7 @@ type ModeSetter = Dispatch<SetStateAction<AuthMode>>;
 type OtpRefs = { current: (HTMLInputElement | null)[] };
 
 const OTP_POSITIONS = [0, 1, 2, 3, 4, 5];
-const GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? 'https://bidmart-b15.duckdns.org';
+const GATEWAY_URL = '/api/proxy';
 const linkButtonStyle = {
   background: 'transparent',
   border: 0,

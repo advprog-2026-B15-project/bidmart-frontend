@@ -1,4 +1,4 @@
-const GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? 'https://bidmart-b15.duckdns.org';
+const GATEWAY_URL = '/api/proxy';
 
 export function getToken(): string | null {
   if (typeof window === 'undefined') return null;
