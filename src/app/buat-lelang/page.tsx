@@ -7,14 +7,16 @@ import { Upload, Plus, Check, Chevron, Gavel } from '@/components/icons';
 import { CAT_TREE, fmtRp } from '@/lib/data';
 import { createListing } from '@/modules/catalog/api';
 import { createAuction, activateAuction } from '@/modules/auction/api';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 
 const CATEGORY_TREE = CAT_TREE as Record<string, Record<string, string[]>>;
 const PHOTO_SLOTS = [0, 1, 2, 3, 4, 5];
 const DURATIONS = [1, 3, 5, 7, 10, 14];
 
 export default function BuatLelangPage() {
+  useRequireAuth();
   const router = useRouter();
-  const [imgs, setImgs] = useState<(string | null)[]>(['bm-art-elec', 'bm-art-elec', 'bm-art-music', null, null, null]);
+  const [imgs, setImgs] = useState<(string | null)[]>([null, null, null, null, null, null]);
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
   const [startPrice, setStartPrice] = useState('');

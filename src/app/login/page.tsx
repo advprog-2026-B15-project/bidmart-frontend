@@ -200,7 +200,7 @@ function RegisterForm({
       e.preventDefault();
       onSubmit(emailRef.current?.value ?? '', usernameRef.current?.value ?? '', passwordRef.current?.value ?? '');
     }}>
-      <div className="bm-field"><label htmlFor="register-username">Username</label><input ref={usernameRef} id="register-username" placeholder="aulia_ramadhan"/></div>
+      <div className="bm-field"><label htmlFor="register-username">Username</label><input ref={usernameRef} id="register-username" placeholder="username_kamu"/></div>
       <div className="bm-field"><label htmlFor="register-email">Email</label><input ref={emailRef} id="register-email" type="email" placeholder="kamu@email.com"/></div>
       <div className="bm-field">
         <label htmlFor="register-password">Password</label>

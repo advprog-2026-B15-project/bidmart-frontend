@@ -73,29 +73,8 @@ function DetailContent() {
     }
   }, [id]);
 
-  const isDummy = searchParams.get('dummy') === 'true';
-
   // Initial data fetch
   useEffect(() => {
-    if (isDummy) {
-      setAuctionRaw({
-        id: 'dummy-123',
-        title: 'Sony WH-1000XM5 Wireless Noise-Cancelling (DUMMY)',
-        currentPrice: 3200000,
-        minimumIncrement: 50000,
-        endTime: new Date(Date.now() + 86400000).toISOString(),
-        sellerId: 'S-192837',
-        status: 'ACTIVE'
-      });
-      setBids([
-        { bidder: 'Budi', amount: 3200000, time: 'Baru saja', you: false, top: true, opener: false },
-        { bidder: 'kamu', amount: 3100000, time: '5 menit lalu', you: true, top: false, opener: false }
-      ]);
-      setBidVal('3250000');
-      setLoading(false);
-      return;
-    }
-
     if (!id) {
       router.push('/');
       return;
@@ -108,7 +87,7 @@ function DetailContent() {
       })
       .catch(() => router.push('/'))
       .finally(() => setLoading(false));
-  }, [id, isDummy, router]);
+  }, [id, router]);
 
   // SSE — real-time price and bid updates
   useEffect(() => {
@@ -351,7 +330,7 @@ function DetailContent() {
         )}
         {tab === 'desc' && (
           <div style={{ maxWidth: 760, color: 'var(--ink-2)', lineHeight: 1.7 }}>
-            <p>Deskripsi barang belum tersedia — akan ditampilkan setelah integrasi Catalog Service selesai.</p>
+            <p>Deskripsi tidak tersedia untuk lelang ini.</p>
           </div>
         )}
         {tab === 'shipping' && (
