@@ -188,20 +188,28 @@ function RegisterForm({
   onSubmit,
   onSignIn,
 }: Readonly<{
-  onSubmit: (email: string, username: string, password: string) => void;
+  onSubmit: (email: string, username: string, password: string, role: string) => void;
   onSignIn: () => void;
 }>) {
   const emailRef = useRef<HTMLInputElement>(null);
   const usernameRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
+  const roleRef = useRef<HTMLSelectElement>(null);
 
   return (
     <form onSubmit={e => {
       e.preventDefault();
-      onSubmit(emailRef.current?.value ?? '', usernameRef.current?.value ?? '', passwordRef.current?.value ?? '');
+      onSubmit(emailRef.current?.value ?? '', usernameRef.current?.value ?? '', passwordRef.current?.value ?? '', roleRef.current?.value ?? 'BUYER');
     }}>
       <div className="bm-field"><label htmlFor="register-username">Username</label><input ref={usernameRef} id="register-username" placeholder="username_kamu"/></div>
       <div className="bm-field"><label htmlFor="register-email">Email</label><input ref={emailRef} id="register-email" type="email" placeholder="kamu@email.com"/></div>
+      <div className="bm-field">
+        <label htmlFor="register-role">Tipe Akun</label>
+        <select ref={roleRef} id="register-role">
+          <option value="BUYER">Pembeli</option>
+          <option value="SELLER">Penjual</option>
+        </select>
+      </div>
       <div className="bm-field">
         <label htmlFor="register-password">Password</label>
         <input ref={passwordRef} id="register-password" type="password" placeholder="Minimal 8 karakter"/>
@@ -235,7 +243,7 @@ function AuthPanel({
   showPw: boolean;
   togglePassword: () => void;
   onLoginSubmit: (email: string, password: string) => void;
-  onRegisterSubmit: (email: string, username: string, password: string) => void;
+  onRegisterSubmit: (email: string, username: string, password: string, role: string) => void;
 }>) {
   return (
     <>
@@ -292,12 +300,12 @@ export default function LoginPage() {
     }
   }
 
-  async function handleRegister(email: string, username: string, password: string) {
+  async function handleRegister(email: string, username: string, password: string, role: string) {
     try {
       const res = await fetch(`${GATEWAY_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, username, password }),
+        body: JSON.stringify({ email, username, password, role }),
       });
       if (!res.ok) { alert('Registrasi gagal. Cek email dan password kamu.'); return; }
       const data = await res.json() as { verificationToken?: string };
