@@ -55,8 +55,13 @@ export async function createListing(data: {
   data.images?.forEach(f => form.append('imageFiles', f));
 
   const token = getToken();
+  const userId = localStorage.getItem('bidmart_user_id');
+  const role = localStorage.getItem('bidmart_role');
+  
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (userId) headers['X-User-Id'] = userId;
+  if (role) headers['X-User-Role'] = role;
 
   const res = await fetch('/api/proxy/api/listings', { method: 'POST', headers, body: form });
   if (!res.ok) {

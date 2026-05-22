@@ -74,7 +74,7 @@ export default function BuatLelangPage() {
     setSubmitting(true);
     setErrorMsg('');
     try {
-      const endTime = new Date(mountTime + days * 86400000).toISOString();
+      const endTime = new Date(mountTime + days * 86400000).toISOString().replace('Z', '');
       const startAmt = Number(onlyDigits(startPrice));
       const reserveAmt = reserve ? Number(onlyDigits(reserve)) : 0;
       const imageFiles = files.filter((f): f is File => f !== null);
