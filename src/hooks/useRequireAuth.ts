@@ -1,17 +1,21 @@
 'use client';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getToken } from '@/lib/api';
+import { getToken, getCurrentRole } from '@/lib/api';
 
-export function useRequireAuth(): boolean {
+export function useRequireAuth(requiredRole?: string): boolean {
   const router = useRouter();
-  const isAuth = typeof window !== 'undefined' && !!getToken();
+  const token = getToken();
+  const role = getCurrentRole();
+  const isAuth = typeof window !== 'undefined' && !!token;
 
   useEffect(() => {
     if (!isAuth) {
       router.replace('/login');
+    } else if (requiredRole && role?.toUpperCase() !== requiredRole.toUpperCase()) {
+      router.replace('/');
     }
-  }, [isAuth, router]);
+  }, [isAuth, role, requiredRole, router]);
 
   return isAuth;
 }

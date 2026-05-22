@@ -65,8 +65,15 @@ export async function createListing(data: {
 
   const res = await fetch('/api/proxy/api/listings', { method: 'POST', headers, body: form });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({})) as Record<string, string>;
-    throw Object.assign(new Error(err['message'] ?? `HTTP ${res.status}`), { status: res.status });
+    const text = await res.text().catch(() => '');
+    let message = `HTTP ${res.status}`;
+    try {
+      const json = JSON.parse(text);
+      message = json.message || json.error || message;
+    } catch {
+      if (text) message = text;
+    }
+    throw Object.assign(new Error(message), { status: res.status });
   }
   return res.json() as Promise<Listing>;
 }
