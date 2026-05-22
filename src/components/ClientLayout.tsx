@@ -14,7 +14,7 @@ function InnerLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 
   return (
     <>
-      {!noShell && <TopNav alerts={3}/>}
+      {!noShell && <TopNav/>}
       {children}
       {!noShell && <Footer/>}
       <Toaster toasts={toasts} onDismiss={dismissToast}/>

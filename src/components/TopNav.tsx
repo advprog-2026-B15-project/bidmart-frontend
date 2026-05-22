@@ -6,6 +6,7 @@ import { Bell, Wallet, ChevronDown, Search, Package, Plus, Shield, Settings, Log
 import { CAT_PILLS } from '@/lib/data';
 import Icon from './icons';
 import { getUsername, getEmail, clearToken, getToken } from '@/lib/api';
+import { getMyNotifications } from '@/modules/booking/api';
 
 function getInitials(name: string): string {
   const clean = name.includes('@') ? name.split('@')[0] : name;
@@ -14,11 +15,7 @@ function getInitials(name: string): string {
   return clean.slice(0, 2).toUpperCase();
 }
 
-interface TopNavProps {
-  alerts?: number;
-}
-
-export default function TopNav({ alerts = 3 }: Readonly<TopNavProps>) {
+export default function TopNav() {
   const router = useRouter();
   const pathname = usePathname();
   const [query, setQuery] = useState('');
@@ -26,6 +23,7 @@ export default function TopNav({ alerts = 3 }: Readonly<TopNavProps>) {
   const [displayName, setDisplayName] = useState('');
   const [displayEmail, setDisplayEmail] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const userRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,6 +36,11 @@ export default function TopNav({ alerts = 3 }: Readonly<TopNavProps>) {
         const name = username || (email.includes('@') ? email.split('@')[0] : email);
         setDisplayName(name);
         setDisplayEmail(email);
+        getMyNotifications()
+          .then(list => setUnreadCount(list.filter(n => n.unread).length))
+          .catch(() => {});
+      } else {
+        setUnreadCount(0);
       }
     };
     load();
@@ -91,7 +94,7 @@ export default function TopNav({ alerts = 3 }: Readonly<TopNavProps>) {
               <button className="bm-iconbtn" onClick={() => router.push('/notifikasi')}>
                 <span className="bm-iconbtn-wrap">
                   <Bell/>
-                  {alerts > 0 && <span className="bm-iconbtn-badge">{alerts}</span>}
+                  {unreadCount > 0 && <span className="bm-iconbtn-badge">{unreadCount}</span>}
                 </span>
                 <span>Notifikasi</span>
               </button>
