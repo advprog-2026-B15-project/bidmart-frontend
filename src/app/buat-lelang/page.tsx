@@ -5,6 +5,7 @@ import Button from '@/components/ui/Button';
 import Switch from '@/components/ui/Switch';
 import { Upload, Plus, Check, Chevron, Gavel } from '@/components/icons';
 import { CAT_TREE, fmtRp } from '@/lib/data';
+import { createAuction, activateAuction, type CreateAuctionRequest } from '@/modules/auction/api';
 
 const CATEGORY_TREE = CAT_TREE as Record<string, Record<string, string[]>>;
 const PHOTO_SLOTS = [0, 1, 2, 3, 4, 5];
@@ -33,6 +34,31 @@ export default function BuatLelangPage() {
     setCat1(category);
     setCat2(sub);
     setCat3(CATEGORY_TREE[category][sub][0]);
+  };
+
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const handlePublish = async () => {
+    setSubmitting(true);
+    setErrorMsg('');
+    try {
+      const data: CreateAuctionRequest = {
+        listingId: `lst-dummy-${Date.now()}`, // Dummy listing ID for MVP
+        title,
+        startingPrice: Number(startPrice) || 0,
+        reservePrice: Number(reserve) || 0,
+        minimumIncrement: Number(increment) || 0,
+        endTime: new Date(Date.now() + days * 86400000).toISOString(),
+      };
+      const auction = await createAuction(data);
+      await activateAuction(auction.id);
+      router.push(`/detail?id=${auction.id}`);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Gagal mempublikasikan lelang');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -216,10 +242,13 @@ export default function BuatLelangPage() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', padding: '20px 0 0' }}>
-            <Button variant="ghost" size="lg">Pratinjau</Button>
-            <Button variant="secondary" size="lg">Simpan draft</Button>
-            <Button variant="primary" size="lg" leftIcon={<Gavel width={16} height={16}/>}>Publikasikan Lelang</Button>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', padding: '20px 0 0', alignItems: 'center' }}>
+            {errorMsg && <span style={{ color: 'var(--red-600)', fontSize: 13, marginRight: 'auto' }}>{errorMsg}</span>}
+            <Button variant="ghost" size="lg" disabled={submitting}>Pratinjau</Button>
+            <Button variant="secondary" size="lg" disabled={submitting}>Simpan draft</Button>
+            <Button variant="primary" size="lg" leftIcon={<Gavel width={16} height={16}/>} onClick={handlePublish} disabled={submitting}>
+              {submitting ? 'Mempublikasikan...' : 'Publikasikan Lelang'}
+            </Button>
           </div>
         </div>
 

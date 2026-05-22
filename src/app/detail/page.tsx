@@ -1,37 +1,174 @@
 'use client';
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import StarRating from '@/components/StarRating';
 import { BlocksCountdown, CompactCountdown, useCountdown } from '@/components/Countdown';
 import { Heart, Shield, Truck, Refresh, Lock, Settings } from '@/components/icons';
-import { ITEMS, BID_HISTORY, fmtRp } from '@/lib/data';
+import { fmtRp } from '@/lib/data';
 import { useAuction } from '@/store/auction-context';
+import { getAuctionRaw, getAuctionBids, getAuctionStreamUrl, placeBid } from '@/modules/auction/api';
+import { getCurrentUserId } from '@/lib/api';
+import type { AuctionItem, BidEntry } from '@/types';
+
+interface AuctionRaw {
+  id: string;
+  title: string;
+  currentPrice: number;
+  minimumIncrement: number;
+  endTime: string;
+  sellerId: string;
+  status: string;
+}
 
 function DetailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { activeItem, openModal } = useAuction();
-  const id = searchParams.get('id');
-  const it = (id ? ITEMS.find(i => i.id === id) : null) ?? activeItem ?? ITEMS[0];
+  const { activeItem, openModal, closeModal, modal, addToast } = useAuction();
 
+  const id = searchParams.get('id');
+
+  const [auctionRaw, setAuctionRaw] = useState<AuctionRaw | null>(null);
+  const [bids, setBids] = useState<BidEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [bidding, setBidding] = useState(false);
   const [thumb, setThumb] = useState(0);
   const [tab, setTab] = useState<'history' | 'desc' | 'shipping'>('history');
-  const [bidVal, setBidVal] = useState(String(it.price + 50_000));
-  const cd = useCountdown(it.ends);
+
+  // Derived from raw auction data
+  const currentPrice = auctionRaw?.currentPrice ?? 0;
+  const minimumIncrement = auctionRaw?.minimumIncrement ?? 50_000;
+  const minNext = currentPrice + minimumIncrement;
+  const [bidVal, setBidVal] = useState('');
+
+  // Construct AuctionItem for modal and countdown from raw data
+  const auctionItem: AuctionItem | null = auctionRaw
+    ? {
+        id: auctionRaw.id,
+        title: auctionRaw.title,
+        price: auctionRaw.currentPrice,
+        bids: bids.length,
+        ends: new Date(auctionRaw.endTime).getTime(),
+        art: activeItem?.art ?? 'bm-art-elec',
+        cat: activeItem?.cat ?? 'elec',
+        seller: auctionRaw.sellerId,
+        rating: 0,
+        ratingCount: 0,
+      }
+    : activeItem;
+
+  const ends = auctionItem?.ends ?? Date.now() + 86400000;
+  const cd = useCountdown(ends);
   const safe = cd.total > 60 * 60 * 1000;
   const urgent = cd.total < 2 * 60 * 1000 && cd.total > 0;
-  const minNext = it.price + 50_000;
+
+  const refreshBids = useCallback(async () => {
+    if (!id) return;
+    try {
+      const fresh = await getAuctionBids(id);
+      setBids(fresh);
+    } catch {
+      // keep existing bids on error
+    }
+  }, [id]);
+
+  const isDummy = searchParams.get('dummy') === 'true';
+
+  // Initial data fetch
+  useEffect(() => {
+    if (isDummy) {
+      setAuctionRaw({
+        id: 'dummy-123',
+        title: 'Sony WH-1000XM5 Wireless Noise-Cancelling (DUMMY)',
+        currentPrice: 3200000,
+        minimumIncrement: 50000,
+        endTime: new Date(Date.now() + 86400000).toISOString(),
+        sellerId: 'S-192837',
+        status: 'ACTIVE'
+      });
+      setBids([
+        { bidder: 'Budi', amount: 3200000, time: 'Baru saja', you: false, top: true, opener: false },
+        { bidder: 'kamu', amount: 3100000, time: '5 menit lalu', you: true, top: false, opener: false }
+      ]);
+      setBidVal('3250000');
+      setLoading(false);
+      return;
+    }
+
+    if (!id) {
+      router.push('/');
+      return;
+    }
+    Promise.all([getAuctionRaw(id), getAuctionBids(id)])
+      .then(([raw, bidList]) => {
+        setAuctionRaw(raw as unknown as AuctionRaw);
+        setBids(bidList);
+        setBidVal(String((raw as unknown as AuctionRaw).currentPrice + (raw as unknown as AuctionRaw).minimumIncrement));
+      })
+      .catch(() => router.push('/'))
+      .finally(() => setLoading(false));
+  }, [id, isDummy, router]);
+
+  // SSE — real-time price and bid updates
+  useEffect(() => {
+    if (!id) return;
+    const es = new EventSource(getAuctionStreamUrl(id));
+    es.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data as string) as { currentPrice?: number; endTime?: string; status?: string };
+        setAuctionRaw(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            ...(data.currentPrice !== undefined && { currentPrice: data.currentPrice }),
+            ...(data.endTime !== undefined && { endTime: data.endTime }),
+            ...(data.status !== undefined && { status: data.status }),
+          };
+        });
+        void refreshBids();
+      } catch {
+        // ignore malformed SSE frames
+      }
+    };
+    return () => es.close();
+  }, [id, refreshBids]);
+
+  // Bid confirm handler
+  async function handleBidConfirm() {
+    if (!auctionRaw) return;
+    setBidding(true);
+    try {
+      await placeBid(auctionRaw.id, modal?.amount ?? minNext);
+      closeModal();
+      addToast({ tone: 'success', title: 'Tawaran berhasil!', desc: `Rp ${(modal?.amount ?? minNext).toLocaleString('id-ID')} masuk.` });
+      await refreshBids();
+      // Refresh price
+      const updated = await getAuctionRaw(auctionRaw.id);
+      setAuctionRaw(updated as unknown as AuctionRaw);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Gagal mengirim tawaran';
+      addToast({ tone: 'error', title: 'Tawaran gagal', desc: msg });
+    } finally {
+      setBidding(false);
+    }
+  }
+
+  if (loading || !auctionItem) {
+    return (
+      <div className="bm-page-wide" style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink-3)' }}>
+        Memuat lelang...
+      </div>
+    );
+  }
+
+  const it = auctionItem;
+  const isLoggedIn = !!getCurrentUserId();
 
   return (
     <div className="bm-page-wide">
       <nav className="bm-bread">
         <button type="button" onClick={() => router.push('/')}>Beranda</button>
-        <span className="sep">/</span>
-        <a href="#electronics">Elektronik</a>
-        <span className="sep">/</span>
-        <a href="#audio-headphone">Audio &amp; Headphone</a>
         <span className="sep">/</span>
         <span className="here">{it.title.split(' ').slice(0, 3).join(' ')}…</span>
       </nav>
@@ -54,20 +191,16 @@ function DetailContent() {
             ))}
           </div>
           <dl className="bm-spec-table" style={{ marginTop: 18 }}>
-            <dt>Kondisi</dt>           <dd>Bekas — Sangat Baik</dd>
-            <dt>Brand</dt>             <dd>Sony</dd>
-            <dt>Model</dt>             <dd>WH-1000XM5</dd>
-            <dt>Konektivitas</dt>      <dd>Bluetooth 5.2 · 3.5mm jack</dd>
-            <dt>Kelengkapan</dt>       <dd>Kotak asli, kabel USB-C, kabel aux, tas penyimpanan</dd>
-            <dt>Lokasi</dt>            <dd>Jakarta Selatan</dd>
-            <dt>Garansi</dt>           <dd>Tersisa 8 bulan (resmi Sony Indonesia)</dd>
+            <dt>Penjual</dt>         <dd>{it.seller}</dd>
+            <dt>Status</dt>          <dd>{auctionRaw?.status ?? '-'}</dd>
+            <dt>Harga awal</dt>      <dd>{fmtRp(it.price)}</dd>
+            <dt>Min. kenaikan</dt>   <dd>{fmtRp(minimumIncrement)}</dd>
           </dl>
         </div>
 
         <div className="bm-detail-info">
           <div>
-            <Badge tone="green">Top-rated seller</Badge>
-            <span style={{ marginLeft: 8 }}><Badge tone="blue">Garansi resmi</Badge></span>
+            <Badge tone="green">Verified seller</Badge>
           </div>
           <h1 className="bm-detail-title">{it.title}</h1>
 
@@ -79,16 +212,15 @@ function DetailContent() {
                 <StarRating rating={it.rating} count={it.ratingCount}/>
               </div>
             </div>
-            <a href="#seller-profile" style={{ fontSize: 13, color: 'var(--blue-600)' }}>Lihat profil →</a>
           </div>
 
           <div className="bm-bid-panel">
             <div className="bm-bid-row-base">
               <span className="bm-bid-lbl">Tawaran tertinggi</span>
-              <span className="bm-bid-sub">{it.bids} bid · Reserve terpenuhi</span>
+              <span className="bm-bid-sub">{bids.length} bid</span>
             </div>
             <div className="bm-bid-row-base" style={{ alignItems: 'flex-end' }}>
-              <div className="bm-bid-price-big">{fmtRp(it.price)}</div>
+              <div className="bm-bid-price-big">{fmtRp(currentPrice)}</div>
             </div>
 
             <div className="bm-bid-divider"/>
@@ -97,7 +229,7 @@ function DetailContent() {
               <span className="bm-bid-lbl">Sisa waktu</span>
               <span className="bm-bid-sub" style={{
                 color: safe ? 'var(--green-700)' : urgent ? 'var(--red-600)' : 'var(--ink-2)',
-                fontWeight: 600
+                fontWeight: 600,
               }}>
                 {safe ? 'Masih lama' : urgent ? 'Hampir berakhir!' : 'Akan berakhir'}
               </span>
@@ -106,31 +238,40 @@ function DetailContent() {
 
             <div className="bm-bid-divider"/>
 
-            <div>
-              <label htmlFor="bid-amount" className="bm-bid-lbl" style={{ display: 'block', marginBottom: 8 }}>Tawaran kamu</label>
-              <div className="bm-bid-input-row">
-                <div className="bm-prefix-input" style={{ flex: 1 }}>
-                  <span className="px">Rp</span>
-                  <input
-                    id="bid-amount"
-                    type="text"
-                    value={Number(bidVal.replace(/\D/g, '')).toLocaleString('id-ID')}
-                    onChange={e => setBidVal(e.target.value.replace(/\D/g, ''))}
-                  />
+            {isLoggedIn ? (
+              <div>
+                <label htmlFor="bid-amount" className="bm-bid-lbl" style={{ display: 'block', marginBottom: 8 }}>Tawaran kamu</label>
+                <div className="bm-bid-input-row">
+                  <div className="bm-prefix-input" style={{ flex: 1 }}>
+                    <span className="px">Rp</span>
+                    <input
+                      id="bid-amount"
+                      type="text"
+                      value={Number(bidVal.replace(/\D/g, '')).toLocaleString('id-ID')}
+                      onChange={e => setBidVal(e.target.value.replace(/\D/g, ''))}
+                    />
+                  </div>
+                </div>
+                <div className="bm-bid-hint" style={{ marginTop: 8 }}>
+                  Minimum tawaran berikutnya: <b style={{ color: 'var(--ink)' }}>{fmtRp(minNext)}</b> · Kelipatan {fmtRp(minimumIncrement)}
                 </div>
               </div>
-              <div className="bm-bid-hint" style={{ marginTop: 8 }}>
-                Minimum tawaran berikutnya: <b style={{ color: 'var(--ink)' }}>{fmtRp(minNext)}</b> · Kelipatan {fmtRp(50_000)}
+            ) : (
+              <div style={{ textAlign: 'center', color: 'var(--ink-2)', fontSize: 13, padding: '8px 0' }}>
+                <a href="/login" style={{ color: 'var(--blue-600)', fontWeight: 600 }}>Masuk</a> untuk ikut menawar
               </div>
-            </div>
+            )}
 
-            <Button
-              variant="primary" size="lg"
-              onClick={() => openModal(it, Number.parseInt(bidVal.replace(/\D/g, ''), 10) || minNext)}
-              style={{ width: '100%' }}
-            >
-              Tawar Sekarang
-            </Button>
+            {isLoggedIn && (
+              <Button
+                variant="primary" size="lg"
+                onClick={() => openModal(it, Number.parseInt(bidVal.replace(/\D/g, ''), 10) || minNext)}
+                style={{ width: '100%' }}
+                disabled={cd.total <= 0 || auctionRaw?.status === 'CLOSED' || auctionRaw?.status === 'UNSOLD'}
+              >
+                {cd.total <= 0 || auctionRaw?.status === 'CLOSED' || auctionRaw?.status === 'UNSOLD' ? 'Lelang Ditutup' : 'Tawar Sekarang'}
+              </Button>
+            )}
 
             <a href="#auto-bid" style={{ fontSize: 13, color: 'var(--blue-600)', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               <Settings width={14} height={14}/>
@@ -159,7 +300,7 @@ function DetailContent() {
 
       <div className="bm-detail-tabs">
         <button className={`bm-detail-tab ${tab === 'history' ? 'active' : ''}`} onClick={() => setTab('history')}>
-          Riwayat Tawaran <span style={{ color: 'var(--ink-3)', marginLeft: 4 }}>({BID_HISTORY.length})</span>
+          Riwayat Tawaran <span style={{ color: 'var(--ink-3)', marginLeft: 4 }}>({bids.length})</span>
         </button>
         <button className={`bm-detail-tab ${tab === 'desc' ? 'active' : ''}`} onClick={() => setTab('desc')}>Deskripsi</button>
         <button className={`bm-detail-tab ${tab === 'shipping' ? 'active' : ''}`} onClick={() => setTab('shipping')}>
@@ -170,68 +311,110 @@ function DetailContent() {
       <div className="bm-detail-body" style={{ maxWidth: '100%', padding: '24px 0 48px' }}>
         {tab === 'history' && (
           <div className="bm-table-wrap" style={{ maxWidth: 880 }}>
-            <table className="bm-table">
-              <thead>
-                <tr>
-                  <th>Penawar</th><th>Jumlah</th><th>Waktu</th>
-                  <th style={{ textAlign: 'right' }}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {BID_HISTORY.map(b => (
-                  <tr key={b.time + b.bidder} style={{ background: b.you ? 'rgba(54,101,243,0.03)' : 'transparent' }}>
-                    <td>
-                      <div className="item-cell">
-                        <span className="bm-avatar sm" style={b.you ? { background: 'var(--blue-600)', color: '#fff' } : {}}>
-                          {b.opener ? '—' : b.you ? 'AR' : b.bidder.slice(0, 2).toUpperCase()}
-                        </span>
-                        <span style={{ fontWeight: b.you ? 600 : 500, color: b.you ? 'var(--blue-700)' : 'var(--ink)' }}>
-                          {b.bidder}
-                        </span>
-                      </div>
-                    </td>
-                    <td style={{ fontWeight: 600 }}>{fmtRp(b.amount)}</td>
-                    <td style={{ color: 'var(--ink-3)' }}>{b.time}</td>
-                    <td style={{ textAlign: 'right' }}>
-                      {b.top ? <Badge tone="green">Tertinggi</Badge> :
-                       b.opener ? <Badge tone="gray">Bid awal</Badge> :
-                       <span style={{ color: 'var(--ink-3)', fontSize: 12 }}>Disalip</span>}
-                    </td>
+            {bids.length === 0 ? (
+              <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--ink-3)' }}>
+                Belum ada tawaran. Jadilah yang pertama!
+              </div>
+            ) : (
+              <table className="bm-table">
+                <thead>
+                  <tr>
+                    <th>Penawar</th><th>Jumlah</th><th>Waktu</th>
+                    <th style={{ textAlign: 'right' }}>Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {bids.map(b => (
+                    <tr key={b.bidder + b.time} style={{ background: b.you ? 'rgba(54,101,243,0.03)' : 'transparent' }}>
+                      <td>
+                        <div className="item-cell">
+                          <span className="bm-avatar sm" style={b.you ? { background: 'var(--blue-600)', color: '#fff' } : {}}>
+                            {b.you ? 'KM' : b.bidder.slice(0, 2).toUpperCase()}
+                          </span>
+                          <span style={{ fontWeight: b.you ? 600 : 500, color: b.you ? 'var(--blue-700)' : 'var(--ink)' }}>
+                            {b.bidder}
+                          </span>
+                        </div>
+                      </td>
+                      <td style={{ fontWeight: 600 }}>{fmtRp(b.amount)}</td>
+                      <td style={{ color: 'var(--ink-3)' }}>{b.time}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        {b.top ? <Badge tone="green">Tertinggi</Badge> :
+                         <span style={{ color: 'var(--ink-3)', fontSize: 12 }}>Disalip</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         )}
         {tab === 'desc' && (
           <div style={{ maxWidth: 760, color: 'var(--ink-2)', lineHeight: 1.7 }}>
-            <p>Sony WH-1000XM5 dalam kondisi sangat baik, dipakai pribadi selama 4 bulan untuk kerja dari rumah. Tidak ada cacat fisik di luar bekas pakai normal pada cushion. Suara, ANC, dan touch control berfungsi sempurna. Kotak, dokumen, dan kabel asli lengkap.</p>
-            <p style={{ marginTop: 12 }}>Garansi resmi Sony Indonesia tersisa 8 bulan (kartu garansi terlampir). Headphone akan dikemas double-bubble wrap dan kotak luar untuk keamanan pengiriman.</p>
-            <h4 style={{ marginTop: 24, fontSize: 15 }}>Yang termasuk</h4>
-            <ul style={{ marginTop: 8, paddingLeft: 20 }}>
-              <li>Sony WH-1000XM5 Headphones (warna Midnight Black)</li>
-              <li>Kotak retail asli dengan inner foam</li>
-              <li>Kabel USB-C charging</li>
-              <li>Kabel audio 3.5mm</li>
-              <li>Carrying case original Sony</li>
-              <li>Buku manual dan kartu garansi</li>
-            </ul>
+            <p>Deskripsi barang belum tersedia — akan ditampilkan setelah integrasi Catalog Service selesai.</p>
           </div>
         )}
         {tab === 'shipping' && (
           <div style={{ maxWidth: 760 }}>
             <dl className="bm-spec-table" style={{ gridTemplateColumns: '200px 1fr' }}>
-              <dt>Lokasi pengiriman</dt>  <dd>Jakarta Selatan, DKI Jakarta</dd>
               <dt>Kurir tersedia</dt>     <dd>JNE Express · J&amp;T · SiCepat · Anteraja</dd>
               <dt>Estimasi sampai</dt>    <dd>1–3 hari kerja (Jabodetabek) · 2–5 hari (luar Jawa)</dd>
-              <dt>Ongkir</dt>             <dd><b style={{ color: 'var(--green-700)' }}>GRATIS</b> ke Jabodetabek · Mulai Rp 25.000 untuk luar Jabodetabek</dd>
-              <dt>Asuransi</dt>           <dd>Termasuk hingga {fmtRp(5_000_000)}</dd>
-              <dt>Metode pembayaran</dt>  <dd>BidMart Wallet · BCA · Mandiri · BRI · BNI · GoPay · OVO · DANA</dd>
-              <dt>Refund</dt>             <dd>14 hari setelah barang diterima — barang harus dikembalikan dalam kondisi semula</dd>
+              <dt>Metode pembayaran</dt>  <dd>BidMart Wallet</dd>
             </dl>
           </div>
         )}
       </div>
+
+      {/* Bid confirm modal rendered inline */}
+      {modal && (
+        <div className="bm-modal-backdrop">
+          <button className="bm-modal-scrim" type="button" aria-label="Tutup modal" onClick={closeModal}/>
+          <div className="bm-modal">
+            <div className="bm-modal-head">
+              <h3>Konfirmasi tawaran kamu</h3>
+              <button className="bm-modal-close" onClick={closeModal}>✕</button>
+            </div>
+            <div className="bm-modal-body">
+              <div className="bm-modal-item">
+                <div className="bm-modal-item-thumb">
+                  <div className={modal.item.art}/>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="bm-modal-item-title">{modal.item.title}</div>
+                  <div className="bm-modal-item-meta">
+                    Sisa <CompactCountdown end={modal.item.ends}/> · {bids.length} bid
+                  </div>
+                </div>
+              </div>
+              <div className="bm-modal-amount">
+                <div className="row">
+                  <span className="lbl">Tawaran kamu</span>
+                  <span className="big">{fmtRp(modal.amount)}</span>
+                </div>
+                <div className="row">
+                  <span className="lbl" style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 500, color: 'var(--ink-2)' }}>Tertinggi saat ini</span>
+                  <span className="small">{fmtRp(currentPrice)}</span>
+                </div>
+              </div>
+              <div className="bm-modal-hold">
+                <div>
+                  <b>{fmtRp(modal.amount)}</b> akan ditahan sementara dari dompet kamu hingga lelang berakhir.
+                  Jika kamu disalip, dana akan dikembalikan otomatis.
+                </div>
+              </div>
+            </div>
+            <div className="bm-modal-fine">
+              Dengan menawar, kamu setuju untuk membeli barang ini jika menang. Tawaran tidak dapat dibatalkan setelah dikirim.
+            </div>
+            <div className="bm-modal-foot">
+              <Button variant="secondary" size="lg" onClick={closeModal} disabled={bidding}>Batal</Button>
+              <Button variant="primary" size="lg" onClick={handleBidConfirm} disabled={bidding}>
+                {bidding ? 'Mengirim...' : 'Konfirmasi tawaran'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
