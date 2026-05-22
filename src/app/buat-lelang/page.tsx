@@ -160,6 +160,7 @@ export default function BuatLelangPage() {
                   <div key={slot} className={`bm-upload-thumb ${slot === 0 && art ? 'main' : ''}`} style={{ cursor: 'pointer' }} onClick={() => !art && openFilePicker(slot)}>
                     {art ? (
                       <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={art} alt={`Foto ${slot + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 6 }}/>
                         <button className="x" onClick={e => { e.stopPropagation(); setImgs(prev => { const c = [...prev]; c[slot] = null; return c; }); setFiles(prev => { const c = [...prev]; c[slot] = null; return c; }); }}>×</button>
                       </>
@@ -284,6 +285,7 @@ export default function BuatLelangPage() {
           <div className="bm-preview-card">
             <div className="bm-listing-image" style={{ borderRadius: 8 }}>
               {imgs[0] ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img src={imgs[0]} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }}/>
               ) : (
                 <div className="bm-listing-image-fill bm-art-elec"/>

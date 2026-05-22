@@ -9,7 +9,7 @@ const NO_SHELL_ROUTES = ['/login'];
 
 function InnerLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const pathname = usePathname();
-  const { toasts, dismissToast, modal, closeModal, addToast } = useAuction();
+  const { toasts, dismissToast } = useAuction();
   const noShell = NO_SHELL_ROUTES.includes(pathname);
 
   return (

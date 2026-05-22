@@ -19,7 +19,10 @@ export default function HomePage() {
 
   useEffect(() => {
     const name = getUsername();
-    if (name) setUsername(name.includes('@') ? name.split('@')[0] : name);
+    if (name) {
+      const display = name.includes('@') ? name.split('@')[0] : name;
+      Promise.resolve().then(() => setUsername(display));
+    }
   }, []);
 
   useEffect(() => {
