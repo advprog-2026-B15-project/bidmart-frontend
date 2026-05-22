@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? 'https://bidmart-b15.duckdns.org';
+const GATEWAY = process.env.GATEWAY_URL ?? 'https://bidmart-b15.duckdns.org';
 
 async function handler(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path } = await params;
@@ -19,6 +19,7 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
     method: req.method,
     headers,
     body,
+    signal: AbortSignal.timeout(25000),
   });
 
   const resHeaders = new Headers();
