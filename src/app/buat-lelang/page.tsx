@@ -19,6 +19,7 @@ export default function BuatLelangPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const targetSlotRef = useRef<number | null>(null);
   const [imgs, setImgs] = useState<(string | null)[]>([null, null, null, null, null, null]);
+  const [files, setFiles] = useState<(File | null)[]>([null, null, null, null, null, null]);
 
   function openFilePicker(slot: number | null) {
     targetSlotRef.current = slot;
@@ -29,19 +30,19 @@ export default function BuatLelangPage() {
     }
   }
 
+  function storeFile(slot: number, file: File) {
+    setFiles(prev => { const copy = [...prev]; copy[slot] = file; return copy; });
+    const reader = new FileReader();
+    reader.onload = ev => setImgs(prev => { const copy = [...prev]; copy[slot] = ev.target?.result as string; return copy; });
+    reader.readAsDataURL(file);
+  }
+
   function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []);
-    if (!files.length) return;
+    const selected = Array.from(e.target.files ?? []);
+    if (!selected.length) return;
     let startSlot = targetSlotRef.current ?? imgs.findIndex(s => s === null);
     if (startSlot === -1) startSlot = 0;
-    files.forEach((file, i) => {
-      const slot = (startSlot + i) % PHOTO_SLOTS.length;
-      const reader = new FileReader();
-      reader.onload = ev => {
-        setImgs(prev => { const copy = [...prev]; copy[slot] = ev.target?.result as string; return copy; });
-      };
-      reader.readAsDataURL(file);
-    });
+    selected.forEach((file, i) => storeFile((startSlot + i) % PHOTO_SLOTS.length, file));
   }
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
@@ -74,19 +75,22 @@ export default function BuatLelangPage() {
     setErrorMsg('');
     try {
       const endTime = new Date(mountTime + days * 86400000).toISOString();
-      const reserveVal = reserve ? Number(onlyDigits(reserve)) : 0;
+      const startAmt = Number(onlyDigits(startPrice));
+      const reserveAmt = reserve ? Number(onlyDigits(reserve)) : 0;
+      const imageFiles = files.filter((f): f is File => f !== null);
       const listing = await createListing({
         title,
         description: desc,
-        startingPrice: Number(onlyDigits(startPrice)),
-        reservePrice: reserveVal || undefined,
+        startingPrice: startAmt,
+        reservePrice: reserveAmt > 0 ? reserveAmt : undefined,
         endTime,
+        images: imageFiles.length > 0 ? imageFiles : undefined,
       });
       const auction = await createAuction({
         listingId: listing.id,
         title,
-        startingPrice: Number(onlyDigits(startPrice)),
-        reservePrice: reserveVal,
+        startingPrice: startAmt,
+        reservePrice: reserveAmt > 0 ? reserveAmt : startAmt,
         minimumIncrement: Number(onlyDigits(increment)) || 50_000,
         endTime,
       });
@@ -138,16 +142,11 @@ export default function BuatLelangPage() {
               onDragOver={e => e.preventDefault()}
               onDrop={e => {
                 e.preventDefault();
-                const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
-                if (!files.length) return;
+                const dropped = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+                if (!dropped.length) return;
                 let slot = imgs.findIndex(s => s === null);
                 if (slot === -1) slot = 0;
-                files.forEach((file, i) => {
-                  const s = (slot + i) % PHOTO_SLOTS.length;
-                  const reader = new FileReader();
-                  reader.onload = ev => setImgs(prev => { const copy = [...prev]; copy[s] = ev.target?.result as string; return copy; });
-                  reader.readAsDataURL(file);
-                });
+                dropped.forEach((file, i) => storeFile((slot + i) % PHOTO_SLOTS.length, file));
               }}
             >
               <Upload width={28} height={28}/>
@@ -162,7 +161,7 @@ export default function BuatLelangPage() {
                     {art ? (
                       <>
                         <img src={art} alt={`Foto ${slot + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 6 }}/>
-                        <button className="x" onClick={e => { e.stopPropagation(); const next = [...imgs]; next[slot] = null; setImgs(next); }}>×</button>
+                        <button className="x" onClick={e => { e.stopPropagation(); setImgs(prev => { const c = [...prev]; c[slot] = null; return c; }); setFiles(prev => { const c = [...prev]; c[slot] = null; return c; }); }}>×</button>
                       </>
                     ) : (
                       <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, color: 'var(--ink-4)', background: 'var(--surface-2)' }}>
