@@ -15,10 +15,19 @@ export function getToken(): string | null {
 }
 
 export function setToken(token: string, userId: string, role: string): void {
+  const payload = decodeJwtPayload(token);
+  
+  // Try to find role in JWT if the provided role is just a default
+  let finalRole = role;
+  if (role === 'BUYER' || !role) {
+    const jwtRole = (payload['role'] as string) || (payload['roles'] as string[])?.[0] || (payload['groups'] as string[])?.[0];
+    if (jwtRole) finalRole = jwtRole;
+  }
+
   localStorage.setItem('bidmart_token', token);
   localStorage.setItem('bidmart_user_id', userId);
-  localStorage.setItem('bidmart_role', role);
-  const payload = decodeJwtPayload(token);
+  localStorage.setItem('bidmart_role', finalRole);
+  
   const username = (payload['username'] as string) || (payload['preferred_username'] as string) || (payload['name'] as string) || '';
   const email = (payload['email'] as string) || userId;
   localStorage.setItem('bidmart_username', username);
@@ -65,8 +74,15 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   const res = await fetch(`${GATEWAY_URL}${path}`, { ...options, headers });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({})) as Record<string, string>;
-    throw Object.assign(new Error(err['message'] ?? `HTTP ${res.status}`), { status: res.status });
+    const text = await res.text().catch(() => '');
+    let message = `HTTP ${res.status}`;
+    try {
+      const json = JSON.parse(text);
+      message = json.message || json.error || message;
+    } catch {
+      if (text) message = text;
+    }
+    throw Object.assign(new Error(message), { status: res.status });
   }
 
   if (res.status === 204) return undefined as T;

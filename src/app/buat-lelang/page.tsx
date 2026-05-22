@@ -14,7 +14,7 @@ const PHOTO_SLOTS = [0, 1, 2, 3, 4, 5];
 const DURATIONS = [1, 3, 5, 7, 10, 14];
 
 export default function BuatLelangPage() {
-  useRequireAuth();
+  useRequireAuth('SELLER');
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const targetSlotRef = useRef<number | null>(null);
@@ -97,7 +97,12 @@ export default function BuatLelangPage() {
       await activateAuction(auction.id);
       router.push(`/detail?id=${auction.id}`);
     } catch (err) {
-      setErrorMsg((err as Error).message || 'Gagal mempublikasikan lelang.');
+      const error = err as Error & { status?: number };
+      let msg = error.message || 'Gagal mempublikasikan lelang.';
+      if (error.status === 403) {
+        msg = `Akses Ditolak: ${msg}`;
+      }
+      setErrorMsg(msg);
       setSubmitting(false);
     }
   }
@@ -138,7 +143,10 @@ export default function BuatLelangPage() {
             <div
               className="bm-upload"
               style={{ cursor: 'pointer' }}
+              role="button"
+              tabIndex={0}
               onClick={() => openFilePicker(null)}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openFilePicker(null); } }}
               onDragOver={e => e.preventDefault()}
               onDrop={e => {
                 e.preventDefault();
@@ -157,7 +165,15 @@ export default function BuatLelangPage() {
               {PHOTO_SLOTS.map(slot => {
                 const art = imgs[slot];
                 return (
-                  <div key={slot} className={`bm-upload-thumb ${slot === 0 && art ? 'main' : ''}`} style={{ cursor: 'pointer' }} onClick={() => !art && openFilePicker(slot)}>
+                  <div
+                    key={slot}
+                    className={`bm-upload-thumb ${slot === 0 && art ? 'main' : ''}`}
+                    style={{ cursor: 'pointer' }}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => !art && openFilePicker(slot)}
+                    onKeyDown={e => { if (!art && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openFilePicker(slot); } }}
+                  >
                     {art ? (
                       <>
                         {/* eslint-disable-next-line @next/next/no-img-element */}

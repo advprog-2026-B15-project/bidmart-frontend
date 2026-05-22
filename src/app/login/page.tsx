@@ -307,7 +307,18 @@ export default function LoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, username, password, role }),
       });
-      if (!res.ok) { alert('Registrasi gagal. Cek email dan password kamu.'); return; }
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        let message = 'Registrasi gagal. Cek email dan password kamu.';
+        try {
+          const json = JSON.parse(text);
+          message = json.message || json.error || (json.errors ? Object.values(json.errors).join(', ') : message);
+        } catch {
+          if (text) message = text;
+        }
+        alert(message);
+        return;
+      }
       const data = await res.json() as { verificationToken?: string };
       if (data.verificationToken) {
         await fetch(`${GATEWAY_URL}/api/auth/verify-email?token=${data.verificationToken}`, {
