@@ -15,11 +15,12 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
 
   const body = req.method !== 'GET' && req.method !== 'HEAD' ? await req.arrayBuffer() : undefined;
 
+  const isStream = path.join('/').includes('stream');
   const res = await fetch(target, {
     method: req.method,
     headers,
     body,
-    signal: AbortSignal.timeout(25000),
+    signal: isStream ? undefined : AbortSignal.timeout(25000),
   });
 
   const resHeaders = new Headers();

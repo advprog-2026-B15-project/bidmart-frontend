@@ -48,14 +48,14 @@ interface NotificationPreference {
 // ── Mappers ───────────────────────────────────────────────────────────────────
 
 const STATUS_MAP: Record<string, string> = {
-  PENDING: 'wait', PAID: 'wait', CONFIRMED: 'wait',
+  CREATED: 'wait', WAITING_PAYMENT: 'wait', PENDING: 'wait', PAID: 'wait', CONFIRMED: 'wait',
   SHIPPED: 'ship',
   DELIVERED: 'recv', RESOLVED: 'recv',
   DISPUTED: 'disp',
 };
 
 const STEP_MAP: Record<string, number> = {
-  PENDING: 1, PAID: 1, CONFIRMED: 1,
+  CREATED: 0, WAITING_PAYMENT: 1, PENDING: 1, PAID: 1, CONFIRMED: 1,
   SHIPPED: 2,
   DISPUTED: 3,
   DELIVERED: 4, RESOLVED: 4,
@@ -178,10 +178,7 @@ export async function getMyNotifications(): Promise<Notification[]> {
 }
 
 export async function markNotificationRead(id: string): Promise<void> {
-  await apiFetch(`/api/notifications/${id}/read`, {
-    method: 'PATCH',
-    body: JSON.stringify({ read: true }),
-  });
+  await apiFetch(`/api/notifications/${id}/read`, { method: 'PATCH' });
 }
 
 export async function getNotificationPreferences(): Promise<NotificationPreference> {

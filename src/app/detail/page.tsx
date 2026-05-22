@@ -89,28 +89,45 @@ function DetailContent() {
       .finally(() => setLoading(false));
   }, [id, router]);
 
-  // SSE — real-time price and bid updates
+  // SSE — real-time price and bid updates with auto-reconnect
   useEffect(() => {
     if (!id) return;
-    const es = new EventSource(getAuctionStreamUrl(id));
-    es.onmessage = (e) => {
-      try {
-        const data = JSON.parse(e.data as string) as { currentPrice?: number; endTime?: string; status?: string };
-        setAuctionRaw(prev => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            ...(data.currentPrice !== undefined && { currentPrice: data.currentPrice }),
-            ...(data.endTime !== undefined && { endTime: data.endTime }),
-            ...(data.status !== undefined && { status: data.status }),
-          };
-        });
-        void refreshBids();
-      } catch {
-        // ignore malformed SSE frames
-      }
+    let es: EventSource;
+    let timer: ReturnType<typeof setTimeout>;
+    let closed = false;
+
+    function connect() {
+      if (closed || !id) return;
+      es = new EventSource(getAuctionStreamUrl(id));
+      es.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data as string) as { currentPrice?: number; endTime?: string; status?: string };
+          setAuctionRaw(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              ...(data.currentPrice !== undefined && { currentPrice: data.currentPrice }),
+              ...(data.endTime !== undefined && { endTime: data.endTime }),
+              ...(data.status !== undefined && { status: data.status }),
+            };
+          });
+          void refreshBids();
+        } catch {
+          // ignore malformed SSE frames
+        }
+      };
+      es.onerror = () => {
+        es.close();
+        if (!closed) timer = setTimeout(connect, 3000);
+      };
+    }
+
+    connect();
+    return () => {
+      closed = true;
+      clearTimeout(timer);
+      es?.close();
     };
-    return () => es.close();
   }, [id, refreshBids]);
 
   // Bid confirm handler

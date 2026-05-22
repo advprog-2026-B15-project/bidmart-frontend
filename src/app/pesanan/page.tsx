@@ -7,6 +7,7 @@ import { fmtRp } from '@/lib/data';
 import {
   getMyBookings,
   getMySellingBookings,
+  getBookingDetail,
   updateShipment,
   confirmDelivery,
   fileDispute,
@@ -214,7 +215,10 @@ export default function PesananPage() {
         ? await getMyBookings()
         : await getMySellingBookings();
       setOrders(data);
-      if (data.length > 0) setOpenOrder(data[0]);
+      if (data.length > 0) {
+        const detail = await getBookingDetail(data[0].id, role).catch(() => data[0]);
+        setOpenOrder(detail);
+      }
     } catch {
       setOrders([]);
     } finally {
@@ -223,6 +227,12 @@ export default function PesananPage() {
   }, [role]);
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
+
+  async function selectOrder(order: Order) {
+    setOpenOrder(order);
+    const detail = await getBookingDetail(order.id, role).catch(() => order);
+    setOpenOrder(detail);
+  }
 
   async function handleAction(action: string) {
     if (!openOrder) return;
@@ -303,7 +313,7 @@ export default function PesananPage() {
                     key={o.id}
                     order={o}
                     active={openOrder?.id === o.id}
-                    onClick={() => setOpenOrder(o)}
+                    onClick={() => selectOrder(o)}
                     role={role}
                   />
                 ))}

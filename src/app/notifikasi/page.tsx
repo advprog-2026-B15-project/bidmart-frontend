@@ -46,8 +46,57 @@ export default function NotifikasiPage() {
         setLoading(false);
       }
     }
-
     load();
+  }, []);
+
+  // SSE — real-time notifications
+  useEffect(() => {
+    let es: EventSource;
+    let timer: ReturnType<typeof setTimeout>;
+    let closed = false;
+
+    function connect() {
+      if (closed) return;
+      es = new EventSource('/api/proxy/notifications/stream');
+      es.addEventListener('notification', (e: MessageEvent) => {
+        try {
+          const raw = JSON.parse(e.data as string) as {
+            id: number; type: string; title: string; message: string;
+            isRead: boolean; readAt: string | null; createdAt: string;
+            relatedAuctionId: string | null; relatedBookingId: number | null;
+          };
+          const NOTIF_TYPE_MAP: Record<string, string> = {
+            WIN: 'won', LOSE: 'out',
+            NEW_BID: 'bid', OUTBID: 'out',
+            PAYMENT_CONFIRMED: 'order', BALANCE_RELEASED: 'order',
+            SHIPPED: 'order', DELIVERED: 'order',
+            DISPUTE_FILED: 'order', INFO: 'order',
+          };
+          const notif = {
+            id: String(raw.id),
+            type: NOTIF_TYPE_MAP[raw.type] ?? 'order',
+            unread: !raw.isRead,
+            title: raw.title,
+            desc: raw.message,
+            when: 'Baru saja',
+          };
+          setList(prev => [notif, ...prev.filter(n => n.id !== notif.id)]);
+        } catch {
+          // ignore malformed frames
+        }
+      });
+      es.onerror = () => {
+        es.close();
+        if (!closed) timer = setTimeout(connect, 5000);
+      };
+    }
+
+    connect();
+    return () => {
+      closed = true;
+      clearTimeout(timer);
+      es?.close();
+    };
   }, []);
 
   async function markAllRead() {
