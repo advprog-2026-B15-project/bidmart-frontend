@@ -300,6 +300,12 @@ export default function LoginPage() {
         body: JSON.stringify({ email, username, password }),
       });
       if (!res.ok) { alert('Registrasi gagal. Cek email dan password kamu.'); return; }
+      const data = await res.json() as { verificationToken?: string };
+      if (data.verificationToken) {
+        await fetch(`${GATEWAY_URL}/api/auth/verify-email?token=${data.verificationToken}`, {
+          method: 'POST',
+        });
+      }
       alert('Registrasi berhasil! Silakan masuk.');
       setMode('signin');
     } catch {
