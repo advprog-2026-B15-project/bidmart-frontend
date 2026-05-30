@@ -297,11 +297,13 @@ export default function LoginPage() {
         const meRes = await fetch(`${GATEWAY_URL}/api/users/me`, {
           headers: { 'Authorization': `Bearer ${token}` },
         }).catch(() => null);
+        let finalRole = 'BUYER';
         if (meRes?.ok) {
           const me = await meRes.json() as { role?: string; username?: string };
-          setToken(token, email, me.role ?? 'BUYER');
+          finalRole = me.role ?? 'BUYER';
+          setToken(token, email, finalRole);
         }
-        goToHome();
+        finalRole === 'ADMIN' ? router.push('/admin') : goToHome();
       }
     } catch {
       alert('Gagal menghubungi server. Coba lagi.');
