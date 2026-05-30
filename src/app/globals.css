@@ -658,3 +658,5 @@ body { background: var(--surface); color: var(--ink); }
 .bm-row-between { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .bm-stack-tight { display: flex; flex-direction: column; gap: 6px; }
 .bm-stack-lg    { display: flex; flex-direction: column; gap: 22px; }
+
+@keyframes spin { to { transform: rotate(360deg); } }

@@ -49,8 +49,8 @@ export default function AccountSideNav({ active }: Readonly<AccountSideNavProps>
     { id: 'create',        label: 'Buat lelang baru', ico: <Plus width={16} height={16}/>,               path: '/buat-lelang' },
     { id: 'sales',         label: 'Penjualan',        ico: <TrendUp width={16} height={16}/> },
     { group: 'Akun' },
-    { id: 'profile',       label: 'Profil',           ico: <User width={16} height={16}/> },
-    { id: 'security',      label: 'Keamanan',         ico: <Lock width={16} height={16}/> },
+    { id: 'profile',       label: 'Profil',           ico: <User width={16} height={16}/>,   path: '/profil' },
+    { id: 'security',      label: 'Keamanan',         ico: <Lock width={16} height={16}/>,   path: '/keamanan' },
     { id: 'settings',      label: 'Pengaturan',       ico: <Settings width={16} height={16}/> },
   ];
 

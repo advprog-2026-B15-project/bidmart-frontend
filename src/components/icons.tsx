@@ -75,6 +75,9 @@ export const Book = mk(<><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.
 export const Palette = mk(<><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></>);
 export const Watch = mk(<><circle cx="12" cy="12" r="6"/><polyline points="12 10 12 12 13 13"/><path d="m16.13 7.66-.81-4.05a2 2 0 0 0-2-1.61h-2.68a2 2 0 0 0-2 1.61l-.78 4.05"/><path d="m7.88 16.36.8 4.05a2 2 0 0 0 2 1.59h2.72a2 2 0 0 0 2-1.61l.81-4.05"/></>);
 export const Grid = mk(<><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></>);
+export const Smartphone = mk(<><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></>);
+export const Trash = mk(<><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></>);
+export const Mail = mk(<><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>);
 
 const Icon = {
   Search, Heart, HeartFill, Bell, Wallet, User, Settings, Clock, Gavel, Truck,
@@ -82,7 +85,7 @@ const Icon = {
   Image, Trophy, AlertTri, Info, Eye, EyeOff, LogOut, TrendUp, TrendDown, Users,
   DollarSign, Tag, Filter, Shield, Lock, CreditCard, Calendar, ArrowRight, ArrowDown,
   ArrowUp, Refresh, Home, List, Box, Flag, Pencil, MoreH, Cpu, Shirt, Car, Sparkles,
-  Music, Gamepad, Book, Palette, Watch, Grid,
+  Music, Gamepad, Book, Palette, Watch, Grid, Smartphone, Trash, Mail,
 };
 
 export default Icon;
