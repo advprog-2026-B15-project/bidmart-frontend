@@ -2,10 +2,10 @@
 import { useRef, useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Logo from './Logo';
-import { Bell, Wallet, ChevronDown, Search, Package, Plus, Shield, Settings, LogOut } from './icons';
+import { Bell, Wallet, ChevronDown, Search, Package, Plus, Shield, Settings, LogOut, User } from './icons';
 import { CAT_PILLS } from '@/lib/data';
 import Icon from './icons';
-import { getUsername, getEmail, clearToken, getToken } from '@/lib/api';
+import { getUsername, getEmail, clearToken, getToken, getCurrentRole } from '@/lib/api';
 import { getMyNotifications } from '@/modules/booking/api';
 
 function getInitials(name: string): string {
@@ -24,6 +24,7 @@ export default function TopNav() {
   const [displayEmail, setDisplayEmail] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [role, setRole] = useState('');
   const userRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,11 +37,13 @@ export default function TopNav() {
         const name = username || (email.includes('@') ? email.split('@')[0] : email);
         setDisplayName(name);
         setDisplayEmail(email);
+        setRole(getCurrentRole() ?? '');
         getMyNotifications()
           .then(list => setUnreadCount(list.filter(n => n.unread).length))
           .catch(() => {});
       } else {
         setUnreadCount(0);
+        setRole('');
       }
     };
     load();
@@ -98,10 +101,12 @@ export default function TopNav() {
                 </span>
                 <span>Notifikasi</span>
               </button>
-              <button className="bm-iconbtn" onClick={() => router.push('/wallet')}>
-                <Wallet/>
-                <span>Dompet</span>
-              </button>
+              {role !== 'ADMIN' && (
+                <button className="bm-iconbtn" onClick={() => router.push('/wallet')}>
+                  <Wallet/>
+                  <span>Dompet</span>
+                </button>
+              )}
               <div ref={userRef} style={{ position: 'relative' }}>
                 <button className="bm-userbtn" onClick={() => setUserOpen(o => !o)}>
                   <span className="bm-avatar">{getInitials(displayName || displayEmail || 'U')}</span>
@@ -115,16 +120,41 @@ export default function TopNav() {
                       <div>
                         <div className="nm">{displayName || 'Pengguna'}</div>
                         <div className="em">{displayEmail}</div>
+                        <div style={{ fontSize: 11, fontWeight: 600, marginTop: 3, padding: '1px 7px', borderRadius: 999, display: 'inline-block',
+                          background: role === 'ADMIN' ? 'var(--red-50)' : role === 'SELLER' ? 'var(--blue-50)' : '#f0fdf4',
+                          color: role === 'ADMIN' ? 'var(--red-700)' : role === 'SELLER' ? 'var(--blue-600)' : '#16a34a',
+                        }}>
+                          {role === 'ADMIN' ? 'Administrator' : role === 'SELLER' ? 'Penjual' : 'Pembeli'}
+                        </div>
                       </div>
                     </div>
-                    <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/wallet'); }}><Wallet width={16} height={16}/>Dompet saya</button>
-                    <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/pesanan'); }}><Package width={16} height={16}/>Pesanan</button>
-                    <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/notifikasi'); }}><Bell width={16} height={16}/>Notifikasi</button>
+
+                    {role === 'ADMIN' ? (
+                      <>
+                        <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/admin'); }}><Shield width={16} height={16}/>Admin dashboard</button>
+                        <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/notifikasi'); }}><Bell width={16} height={16}/>Notifikasi</button>
+                        <div className="sep"/>
+                        <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/profil'); }}><User width={16} height={16}/>Profil</button>
+                        <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/keamanan'); }}><Settings width={16} height={16}/>Pengaturan akun</button>
+                      </>
+                    ) : (
+                      <>
+                        <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/wallet'); }}><Wallet width={16} height={16}/>Dompet saya</button>
+                        <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/pesanan'); }}><Package width={16} height={16}/>Pesanan</button>
+                        <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/notifikasi'); }}><Bell width={16} height={16}/>Notifikasi</button>
+                        {role === 'SELLER' && (
+                          <>
+                            <div className="sep"/>
+                            <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/buat-lelang'); }}><Plus width={16} height={16}/>Jual barang</button>
+                          </>
+                        )}
+                        <div className="sep"/>
+                        <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/profil'); }}><User width={16} height={16}/>Profil</button>
+                        <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/keamanan'); }}><Settings width={16} height={16}/>Pengaturan akun</button>
+                      </>
+                    )}
+
                     <div className="sep"/>
-                    <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/buat-lelang'); }}><Plus width={16} height={16}/>Jual barang</button>
-                    <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/admin'); }}><Shield width={16} height={16}/>Admin dashboard</button>
-                    <div className="sep"/>
-                    <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/pengaturan'); }}><Settings width={16} height={16}/>Pengaturan akun</button>
                     <button type="button" className="row danger" onClick={handleLogout}><LogOut width={16} height={16}/>Keluar</button>
                   </div>
                 )}
