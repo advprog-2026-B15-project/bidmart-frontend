@@ -292,7 +292,15 @@ export default function LoginPage() {
         setMode('otp');
       } else {
         const token = data.accessToken ?? '';
-        setToken(token, email, data.role ?? 'BUYER');
+        setToken(token, email, 'BUYER');
+        // Fetch actual role from /api/users/me since AuthResponse doesn't include it
+        const meRes = await fetch(`${GATEWAY_URL}/api/users/me`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        }).catch(() => null);
+        if (meRes?.ok) {
+          const me = await meRes.json() as { role?: string; username?: string };
+          setToken(token, email, me.role ?? 'BUYER');
+        }
         goToHome();
       }
     } catch {
@@ -343,7 +351,15 @@ export default function LoginPage() {
       });
       if (!res.ok) { alert('Kode OTP salah atau kadaluarsa.'); return; }
       const data = await res.json() as { accessToken?: string; role?: string };
-      setToken(data.accessToken ?? '', '', data.role ?? 'BUYER');
+      const token = data.accessToken ?? '';
+      setToken(token, '', 'BUYER');
+      const meRes = await fetch(`${GATEWAY_URL}/api/users/me`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      }).catch(() => null);
+      if (meRes?.ok) {
+        const me = await meRes.json() as { role?: string };
+        setToken(token, '', me.role ?? 'BUYER');
+      }
       goToHome();
     } catch {
       alert('Gagal verifikasi OTP.');
