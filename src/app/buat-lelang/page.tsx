@@ -5,7 +5,7 @@ import Button from '@/components/ui/Button';
 import Switch from '@/components/ui/Switch';
 import { Upload, Plus, Check, Chevron, Gavel } from '@/components/icons';
 import { CAT_TREE, fmtRp } from '@/lib/data';
-import { createListing } from '@/modules/catalog/api';
+import { createListing, publishListing } from '@/modules/catalog/api';
 import { createAuction, activateAuction } from '@/modules/auction/api';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 
@@ -96,6 +96,7 @@ export default function BuatLelangPage() {
         minimumIncrement: Number(onlyDigits(increment)) || 50_000,
         endTime: endTimeOffset,
       });
+      await publishListing(listing.id);
       await activateAuction(auction.id);
       router.push(`/detail?id=${auction.id}`);
     } catch (err) {

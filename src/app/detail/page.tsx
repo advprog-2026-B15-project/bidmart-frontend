@@ -15,10 +15,12 @@ import type { AuctionItem, BidEntry } from '@/types';
 interface AuctionRaw {
   id: string;
   title: string;
+  startingPrice: number;
   currentPrice: number;
   minimumIncrement: number;
   endTime: string;
   sellerId: string;
+  listingId: string;
   status: string;
 }
 
@@ -37,9 +39,10 @@ function DetailContent() {
   const [tab, setTab] = useState<'history' | 'desc' | 'shipping'>('history');
 
   // Derived from raw auction data
-  const currentPrice = auctionRaw?.currentPrice ?? 0;
+  const startingPrice = auctionRaw?.startingPrice ?? 0;
+  const currentPrice = auctionRaw?.currentPrice ?? startingPrice;
   const minimumIncrement = auctionRaw?.minimumIncrement ?? 50_000;
-  const minNext = currentPrice + minimumIncrement;
+  const minNext = (currentPrice || startingPrice) + minimumIncrement;
   const [bidVal, setBidVal] = useState('');
 
   // Construct AuctionItem for modal and countdown from raw data
@@ -83,7 +86,9 @@ function DetailContent() {
       .then(([raw, bidList]) => {
         setAuctionRaw(raw as unknown as AuctionRaw);
         setBids(bidList);
-        setBidVal(String((raw as unknown as AuctionRaw).currentPrice + (raw as unknown as AuctionRaw).minimumIncrement));
+        const r = raw as unknown as AuctionRaw;
+        const base = r.currentPrice > 0 ? r.currentPrice : r.startingPrice;
+        setBidVal(String(base + r.minimumIncrement));
       })
       .catch(() => router.push('/'))
       .finally(() => setLoading(false));
@@ -189,7 +194,7 @@ function DetailContent() {
           <dl className="bm-spec-table" style={{ marginTop: 18 }}>
             <dt>Penjual</dt>         <dd>{it.seller}</dd>
             <dt>Status</dt>          <dd>{auctionRaw?.status ?? '-'}</dd>
-            <dt>Harga awal</dt>      <dd>{fmtRp(it.price)}</dd>
+            <dt>Harga awal</dt>      <dd>{fmtRp(startingPrice || it.price)}</dd>
             <dt>Min. kenaikan</dt>   <dd>{fmtRp(minimumIncrement)}</dd>
           </dl>
         </div>
