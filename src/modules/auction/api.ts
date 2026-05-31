@@ -11,7 +11,7 @@ interface AuctionResponse {
   reservePrice: number;
   minimumIncrement: number;
   currentPrice: number;
-  status: 'DRAFT' | 'ACTIVE' | 'EXTENDED' | 'CLOSED' | 'UNSOLD';
+  status: 'DRAFT' | 'ACTIVE' | 'EXTENDED' | 'CLOSED' | 'WON' | 'UNSOLD';
   endTime: string;
   listingId: string;
   sellerId: string;

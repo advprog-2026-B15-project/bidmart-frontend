@@ -268,9 +268,9 @@ function DetailContent() {
                 variant="primary" size="lg"
                 onClick={() => openModal(it, Number.parseInt(bidVal.replace(/\D/g, ''), 10) || minNext)}
                 style={{ width: '100%' }}
-                disabled={cd.total <= 0 || auctionRaw?.status === 'CLOSED' || auctionRaw?.status === 'UNSOLD'}
+                disabled={cd.total <= 0 || auctionRaw?.status === 'CLOSED' || auctionRaw?.status === 'WON' || auctionRaw?.status === 'UNSOLD'}
               >
-                {cd.total <= 0 || auctionRaw?.status === 'CLOSED' || auctionRaw?.status === 'UNSOLD' ? 'Lelang Ditutup' : 'Tawar Sekarang'}
+                {cd.total <= 0 || auctionRaw?.status === 'CLOSED' || auctionRaw?.status === 'WON' || auctionRaw?.status === 'UNSOLD' ? 'Lelang Ditutup' : 'Tawar Sekarang'}
               </Button>
             )}
 
