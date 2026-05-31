@@ -1,6 +1,5 @@
 'use client';
-export const dynamic = 'force-dynamic';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -42,7 +41,7 @@ function listingToItem(l: Listing, catKey?: string): AuctionItem {
   };
 }
 
-export default function HomePage() {
+function HomePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setActiveItem } = useAuction();
@@ -222,5 +221,13 @@ export default function HomePage() {
         </section>
       )}
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--ink-3)' }}>Memuat...</div>}>
+      <HomePageContent/>
+    </Suspense>
   );
 }
