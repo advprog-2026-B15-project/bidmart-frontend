@@ -31,7 +31,7 @@ export interface CreateAuctionRequest {
   listingId: string;
   title: string;
   startingPrice: number;
-  reservePrice: number;
+  reservePrice?: number;
   minimumIncrement: number;
   endTime: string;
 }
