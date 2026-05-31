@@ -92,7 +92,7 @@ export default function BuatLelangPage() {
         listingId: listing.id,
         title,
         startingPrice: startAmt,
-        reservePrice: reserveAmt > 0 ? reserveAmt : startAmt,
+        reservePrice: reserveAmt > startAmt ? reserveAmt : undefined,
         minimumIncrement: Number(onlyDigits(increment)) || 50_000,
         endTime: endTimeOffset,
       });
