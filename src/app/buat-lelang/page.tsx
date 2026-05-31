@@ -74,7 +74,9 @@ export default function BuatLelangPage() {
     setSubmitting(true);
     setErrorMsg('');
     try {
-      const endTime = new Date(mountTime + days * 86400000).toISOString().replace('Z', '');
+      const endTimeIso = new Date(mountTime + days * 86400000).toISOString();
+      const endTimeLocal = endTimeIso.replace('Z', ''); // catalog (LocalDateTime)
+      const endTimeOffset = endTimeIso.replace('.000Z', '+00:00'); // auction (OffsetDateTime)
       const startAmt = Number(onlyDigits(startPrice));
       const reserveAmt = reserve ? Number(onlyDigits(reserve)) : 0;
       const imageFiles = files.filter((f): f is File => f !== null);
@@ -83,7 +85,7 @@ export default function BuatLelangPage() {
         description: desc,
         startingPrice: startAmt,
         reservePrice: reserveAmt > 0 ? reserveAmt : undefined,
-        endTime,
+        endTime: endTimeLocal,
         images: imageFiles.length > 0 ? imageFiles : undefined,
       });
       const auction = await createAuction({
@@ -92,7 +94,7 @@ export default function BuatLelangPage() {
         startingPrice: startAmt,
         reservePrice: reserveAmt > 0 ? reserveAmt : startAmt,
         minimumIncrement: Number(onlyDigits(increment)) || 50_000,
-        endTime,
+        endTime: endTimeOffset,
       });
       await activateAuction(auction.id);
       router.push(`/detail?id=${auction.id}`);
