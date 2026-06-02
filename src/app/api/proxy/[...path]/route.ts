@@ -1,22 +1,22 @@
-import { type NextRequest, NextResponse } from 'next/server';
+﻿import { type NextRequest, NextResponse } from "next/server";
 
-const GATEWAY = process.env.GATEWAY_URL ?? 'https://bidmart-b15.duckdns.org';
+const GATEWAY = process.env.GATEWAY_URL ?? "https://bidmart-b15.duckdns.org";
 
 export const maxDuration = 60; 
 
 async function handler(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path } = await params;
-  const target = \\/\\\;
+  const target = `${GATEWAY}/${path.join("/")}${req.nextUrl.search}`;
 
   const headers = new Headers();
   req.headers.forEach((val, key) => {
-    if (!['host', 'connection', 'transfer-encoding', 'content-length'].includes(key.toLowerCase())) {
+    if (!["host", "connection", "transfer-encoding", "content-length"].includes(key.toLowerCase())) {
       headers.set(key, val);
     }
   });
 
   let body: any = undefined;
-  if (req.method !== 'GET' && req.method !== 'HEAD') {
+  if (req.method !== "GET" && req.method !== "HEAD") {
     try {
       body = await req.arrayBuffer();
     } catch (e) {
@@ -25,7 +25,7 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
   }
 
   try {
-    const isStream = path.join('/').includes('stream');
+    const isStream = path.join("/").includes("stream");
     const res = await fetch(target, {
       method: req.method,
       headers,
@@ -35,7 +35,7 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
 
     const resHeaders = new Headers();
     res.headers.forEach((val, key) => {
-      if (!['transfer-encoding', 'content-encoding'].includes(key.toLowerCase())) {
+      if (!["transfer-encoding", "content-encoding"].includes(key.toLowerCase())) {
         resHeaders.set(key, val);
       }
     });
@@ -45,9 +45,9 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
       headers: resHeaders,
     });
   } catch (err) {
-    console.error(\Proxy error for \:\, err);
+    console.error(`Proxy error for ${target}:`, err);
     return NextResponse.json(
-      { error: 'Internal Server Error', message: err instanceof Error ? err.message : String(err) },
+      { error: "Internal Server Error", message: err instanceof Error ? err.message : String(err) },
       { status: 500 }
     );
   }

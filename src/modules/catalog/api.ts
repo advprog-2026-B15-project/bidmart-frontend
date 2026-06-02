@@ -1,4 +1,4 @@
-import { apiFetch, getToken, getCurrentUserId, getCurrentRole } from '@/lib/api';
+import { apiFetch, getToken, getCurrentUserId } from '@/lib/api';
 
 export interface Listing {
   id: string;
