@@ -15,10 +15,24 @@ export default function AuctionCard({ item, onClick }: Readonly<AuctionCardProps
   const { total } = useCountdown(item.ends);
   const urgent = total < 2 * 60 * 1000 && total > 0;
   const ended = total <= 0;
+
+  const imageUrl = item.imageUrls?.[0] 
+    ? `/api/proxy/uploads/${item.imageUrls[0].split('/').pop()}` 
+    : null;
+
   return (
     <article className="bm-listing">
       <div className="bm-listing-image">
-        <div className={`bm-listing-image-fill ${item.art}`}/>
+        {imageUrl ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img 
+            src={imageUrl} 
+            alt={item.title} 
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+          />
+        ) : (
+          <div className={`bm-listing-image-fill ${item.art}`}/>
+        )}
         <button
           className={`bm-listing-heart ${watched ? 'active' : ''}`}
           onClick={e => { e.stopPropagation(); setWatched(w => !w); }}

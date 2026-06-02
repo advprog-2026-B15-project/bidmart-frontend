@@ -34,6 +34,7 @@ function listingToItem(l: Listing, catKey?: string): AuctionItem {
     bids: l.bidCount,
     ends: new Date(l.endTime).getTime(),
     art: ART_MAP[artKey ?? ''] ?? 'bm-art-elec',
+    imageUrls: l.imageUrls,
     cat: l.category?.name ?? 'other',
     seller: l.sellerId,
     rating: 4.5,
