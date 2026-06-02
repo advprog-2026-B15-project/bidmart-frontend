@@ -95,7 +95,10 @@ function DetailContent() {
         const base = r.currentPrice > 0 ? r.currentPrice : r.startingPrice;
         setBidVal(String(base + r.minimumIncrement));
       })
-      .catch(() => router.push('/'))
+      .catch((err) => {
+        console.error("Failed to fetch auction details:", err);
+        // Removed router.push('/') to prevent automatic kick-out
+      })
       .finally(() => setLoading(false));
   }, [id, router]);
 

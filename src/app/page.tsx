@@ -164,22 +164,6 @@ function HomePageContent() {
         </div>
       )}
 
-      {/* Category pills — functional */}
-      <div className="bm-catpills" style={{ margin: '0 0 24px' }}>
-        {CAT_PILLS.map(c => {
-          const IconC = (Icon as Record<string, React.FC<React.SVGProps<SVGSVGElement>>>)[c.icon] || Icon.Tag;
-          return (
-            <button
-              key={c.id}
-              className={`bm-catpill ${activeCat === c.id ? 'active' : ''}`}
-              onClick={() => handleCat(c.id)}
-            >
-              <IconC width={14} height={14}/>{c.name}
-            </button>
-          );
-        })}
-      </div>
-
       <section className="bm-section">
         <div className="bm-section-head">
           <div>
