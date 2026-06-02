@@ -54,6 +54,7 @@ function DetailContent() {
         bids: bids.length,
         ends: new Date(auctionRaw.endTime).getTime(),
         art: activeItem?.art ?? 'bm-art-elec',
+        imageUrls: activeItem?.imageUrls,
         cat: activeItem?.cat ?? 'elec',
         seller: auctionRaw.sellerId,
         rating: 0,
@@ -65,6 +66,10 @@ function DetailContent() {
   const cd = useCountdown(ends);
   const safe = cd.total > 60 * 60 * 1000;
   const urgent = cd.total < 2 * 60 * 1000 && cd.total > 0;
+
+  const mainImageUrl = auctionItem?.imageUrls?.[thumb]
+    ? `/api/proxy/uploads/${auctionItem.imageUrls[thumb].split('/').pop()}`
+    : null;
 
   const refreshBids = useCallback(async () => {
     if (!id) return;
