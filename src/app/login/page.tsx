@@ -303,7 +303,11 @@ export default function LoginPage() {
           finalRole = me.role ?? 'BUYER';
           setToken(token, email, finalRole);
         }
-        finalRole === 'ADMIN' ? router.push('/admin') : goToHome();
+        if (finalRole === 'ADMIN') {
+          router.push('/admin');
+        } else {
+          goToHome();
+        }
       }
     } catch {
       alert('Gagal menghubungi server. Coba lagi.');

@@ -200,8 +200,9 @@ function DetailContent() {
             <div className="bm-gallery-thumbs">
               {it.imageUrls.map((url, i) => (
                 <button key={url} className={`bm-gallery-thumb ${thumb === i ? 'active' : ''}`} onClick={() => setThumb(i)}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img 
-                    src={`/api/proxy/uploads/${url.split('/').pop()}`} 
+                    src={`http://54.164.111.51:8082/uploads/${url.split('/').pop()}`} 
                     alt={`Thumb ${i}`} 
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                   />
