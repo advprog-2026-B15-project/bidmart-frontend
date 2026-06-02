@@ -5,6 +5,7 @@ export interface AuctionItem {
   bids: number;
   ends: number;
   art: string;
+  imageUrls?: string[];
   cat: string;
   seller: string;
   rating: number;

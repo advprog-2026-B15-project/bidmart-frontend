@@ -5,6 +5,7 @@ export interface Listing {
   title: string;
   description: string;
   category: { id: string; name: string } | null;
+  imageUrls?: string[];
   sellerId: string;
   startingPrice: number;
   currentPrice: number | null;

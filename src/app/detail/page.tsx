@@ -54,6 +54,7 @@ function DetailContent() {
         bids: bids.length,
         ends: new Date(auctionRaw.endTime).getTime(),
         art: activeItem?.art ?? 'bm-art-elec',
+        imageUrls: activeItem?.imageUrls,
         cat: activeItem?.cat ?? 'elec',
         seller: auctionRaw.sellerId,
         rating: 0,
@@ -65,6 +66,10 @@ function DetailContent() {
   const cd = useCountdown(ends);
   const safe = cd.total > 60 * 60 * 1000;
   const urgent = cd.total < 2 * 60 * 1000 && cd.total > 0;
+
+  const mainImageUrl = auctionItem?.imageUrls?.[thumb]
+    ? `/api/proxy/uploads/${auctionItem.imageUrls[thumb].split('/').pop()}`
+    : null;
 
   const refreshBids = useCallback(async () => {
     if (!id) return;
@@ -177,20 +182,33 @@ function DetailContent() {
       <div className="bm-detail">
         <div className="bm-gallery">
           <div className="bm-gallery-main">
-            <div className="bm-gallery-main-art"/>
-            <div className={`bm-gallery-main-art ${it.art}`} style={{ position: 'absolute' }}/>
+            {mainImageUrl ? (
+               /* eslint-disable-next-line @next/next/no-img-element */
+               <img src={mainImageUrl} alt={it.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <>
+                <div className="bm-gallery-main-art"/>
+                <div className={`bm-gallery-main-art ${it.art}`} style={{ position: 'absolute' }}/>
+              </>
+            )}
             <span className="bm-listing-badge bm-listing-badge-red"
               style={{ top: 16, left: 16, fontSize: 11, padding: '5px 10px' }}>
               LIVE · {cd.total > 0 ? <CompactCountdown end={it.ends}/> : 'Berakhir'}
             </span>
           </div>
-          <div className="bm-gallery-thumbs">
-            {[0, 1, 2, 3].map(i => (
-              <button key={i} className={`bm-gallery-thumb ${thumb === i ? 'active' : ''}`} onClick={() => setThumb(i)}>
-                <div className={`bm-gallery-thumb-art ${it.art}`} style={{ opacity: 0.9 - i * 0.12 }}/>
-              </button>
-            ))}
-          </div>
+          {it.imageUrls && it.imageUrls.length > 0 && (
+            <div className="bm-gallery-thumbs">
+              {it.imageUrls.map((url, i) => (
+                <button key={url} className={`bm-gallery-thumb ${thumb === i ? 'active' : ''}`} onClick={() => setThumb(i)}>
+                  <img 
+                    src={`/api/proxy/uploads/${url.split('/').pop()}`} 
+                    alt={`Thumb ${i}`} 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                  />
+                </button>
+              ))}
+            </div>
+          )}
           <dl className="bm-spec-table" style={{ marginTop: 18 }}>
             <dt>Penjual</dt>         <dd>{it.seller}</dd>
             <dt>Status</dt>          <dd>{auctionRaw?.status ?? '-'}</dd>
