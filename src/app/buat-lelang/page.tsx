@@ -8,6 +8,7 @@ import { fmtRp } from '@/lib/data';
 import { createListing, publishListing } from '@/modules/catalog/api';
 import { createAuction, activateAuction } from '@/modules/auction/api';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { useAuction } from '@/store/auction-context';
 
 interface CategoryInfo {
   id: string;
@@ -39,6 +40,7 @@ const DURATIONS = [1, 3, 5, 7, 10, 14];
 export default function BuatLelangPage() {
   useRequireAuth('SELLER');
   const router = useRouter();
+  const { addToast } = useAuction();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const targetSlotRef = useRef<number | null>(null);
   const [imgs, setImgs] = useState<(string | null)[]>([null, null, null, null, null, null]);
@@ -97,6 +99,37 @@ export default function BuatLelangPage() {
     }
   };
 
+  async function handleSaveDraft() {
+    if (!title.trim()) { setErrorMsg('Judul tidak boleh kosong untuk menyimpan draft.'); return; }
+    setSubmitting(true);
+    setErrorMsg('');
+    try {
+      const endTimeIso = new Date(mountTime + days * 86400000).toISOString();
+      const endTimeLocal = endTimeIso.replace('Z', '');
+      const startAmt = Number(onlyDigits(startPrice)) || 0;
+      const reserveAmt = reserve ? Number(onlyDigits(reserve)) : 0;
+      const imageFiles = files.filter((f): f is File => f !== null);
+
+      const categoryId = CATEGORY_TREE[cat1]?.id;
+
+      await createListing({
+        title,
+        description: desc,
+        startingPrice: startAmt,
+        reservePrice: reserveAmt > 0 ? reserveAmt : undefined,
+        endTime: endTimeLocal,
+        categoryId: categoryId,
+        images: imageFiles.length > 0 ? imageFiles : undefined,
+      });
+
+      addToast({ tone: 'success', title: 'Draft disimpan', desc: 'Barang kamu berhasil disimpan sebagai draft.' });
+      router.push('/listing-saya'); // Redirect to my listings page
+    } catch (err) {
+      setErrorMsg((err as Error).message || 'Gagal menyimpan draft.');
+      setSubmitting(false);
+    }
+  }
+
   async function handlePublish() {
     if (!title.trim()) { setErrorMsg('Judul tidak boleh kosong.'); return; }
     if (!startPrice) { setErrorMsg('Harga awal tidak boleh kosong.'); return; }
@@ -131,6 +164,7 @@ export default function BuatLelangPage() {
       });
       await publishListing(listing.id);
       await activateAuction(auction.id);
+      addToast({ tone: 'success', title: 'Lelang Berhasil!', desc: 'Barang kamu kini tayang dan bisa ditawar.' });
       router.push(`/detail?id=${auction.id}`);
     } catch (err) {
       const error = err as Error & { status?: number };
@@ -154,9 +188,16 @@ export default function BuatLelangPage() {
       <div className="bm-pg-head">
         <div>
           <h1>Buat lelang baru</h1>
-          <p>Isi detail barang kamu. Lelang akan tampil setelah dipublikasikan.</p>
+          <p>Isi detail barang kamu. Pilih antara simpan sebagai draft atau publikasikan sekarang.</p>
         </div>
-        <Button variant="ghost" size="md">Simpan sebagai draft</Button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <Button variant="ghost" size="md" onClick={handleSaveDraft} disabled={submitting}>
+            Simpan sebagai draft
+          </Button>
+          <Button variant="primary" size="md" onClick={handlePublish} disabled={submitting}>
+            Publikasikan
+          </Button>
+        </div>
       </div>
 
       {errorMsg && (
@@ -332,6 +373,9 @@ export default function BuatLelangPage() {
 
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', padding: '20px 0 0' }}>
             <Button variant="ghost" size="lg" onClick={() => router.push('/')}>Batal</Button>
+            <Button variant="secondary" size="lg" onClick={handleSaveDraft} disabled={submitting}>
+              Simpan sebagai draft
+            </Button>
             <Button variant="primary" size="lg" leftIcon={<Gavel width={16} height={16}/>} onClick={handlePublish} disabled={submitting}>
               {submitting ? 'Memproses...' : 'Publikasikan Lelang'}
             </Button>
