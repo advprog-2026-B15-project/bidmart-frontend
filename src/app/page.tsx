@@ -43,26 +43,26 @@ function HomePageContent() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState<string | null>(null);
-  const [activeCat, setActiveCat] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [inputQuery, setInputQuery] = useState('');
-
-  const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Ambil data langsung dari URL (Single Source of Truth)
+  const searchQuery = searchParams.get('q') ?? '';
+  const activeCat = searchParams.get('cat') ?? 'all';
+  const pParam = parseInt(searchParams.get('p') ?? '0', 10);
+  const page = isNaN(pParam) ? 0 : pParam;
   const pageSize = 8;
+
+  // Controlled input state hanya untuk text field pencarian
+  const [inputQuery, setInputQuery] = useState(searchQuery);
 
   useEffect(() => {
     const name = getUsername();
     if (name) setUsername(name.includes('@') ? name.split('@')[0] : name);
-    const q = searchParams.get('q') ?? '';
-    const cat = searchParams.get('cat') ?? 'all';
-    const p = parseInt(searchParams.get('p') ?? '0', 10);
+  }, []);
 
-    setInputQuery(q);
-    setSearchQuery(q);
-    setActiveCat(cat);
-    setPage(isNaN(p) ? 0 : p);
-  }, [searchParams]);
+  useEffect(() => {
+    setInputQuery(searchQuery);
+  }, [searchQuery]);
 
   useEffect(() => {
     getCategories()
@@ -139,42 +139,6 @@ function HomePageContent() {
                     />
                     <Button variant="primary" size="lg" type="submit">Cari</Button>
                   </form>
-
-                  <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
-                    <button
-                        type="button"
-                        onClick={() => router.push('/')}
-                        style={{
-                          padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
-                          fontSize: 14, fontWeight: 500,
-                          backgroundColor: activeCat === 'all' ? 'var(--blue-600)' : 'var(--surface-2)',
-                          color: activeCat === 'all' ? '#fff' : 'var(--ink)'
-                        }}
-                    >
-                      Semua
-                    </button>
-                    {categories.map(c => (
-                        <button
-                            key={c.id}
-                            type="button"
-                            onClick={() => {
-                              const params = new URLSearchParams(searchParams.toString());
-                              params.set('cat', c.id);
-                              params.set('p', '0');
-                              router.push(`/?${params.toString()}`);
-                            }}
-                            style={{
-                              padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
-                              fontSize: 14, fontWeight: 500,
-                              backgroundColor: activeCat === c.id ? 'var(--blue-600)' : 'var(--surface-2)',
-                              color: activeCat === c.id ? '#fff' : 'var(--ink)'
-                            }}
-                        >
-                          {c.name}
-                        </button>
-                    ))}
-                  </div>
-
                 </div>
                 <div className="bm-hero-art">
                   <div className="bm-hero-tile bm-hero-tile-1">
@@ -209,6 +173,49 @@ function HomePageContent() {
               </button>
             </div>
         )}
+
+        {/* Bar Filter Kategori Berdasarkan Kategori Asli DB (Selalu Terlihat & Tidak Ikut Tersembunyi) */}
+        <div style={{ display: 'flex', gap: 8, margin: '16px 0 24px', flexWrap: 'wrap' }}>
+          <button
+              type="button"
+              className={`bm-catpill ${activeCat === 'all' ? 'active' : ''}`}
+              onClick={() => {
+                const params = new URLSearchParams(searchParams.toString());
+                params.delete('cat');
+                params.set('p', '0');
+                router.push(`/?${params.toString()}`);
+              }}
+              style={{
+                padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                fontSize: 14, fontWeight: 500,
+                backgroundColor: activeCat === 'all' ? 'var(--blue-600)' : 'var(--surface-2)',
+                color: activeCat === 'all' ? '#fff' : 'var(--ink)'
+              }}
+          >
+            Semua
+          </button>
+          {categories.map(c => (
+              <button
+                  key={c.id}
+                  type="button"
+                  className={`bm-catpill ${activeCat === c.id ? 'active' : ''}`}
+                  onClick={() => {
+                    const params = new URLSearchParams(searchParams.toString());
+                    params.set('cat', c.id);
+                    params.set('p', '0');
+                    router.push(`/?${params.toString()}`);
+                  }}
+                  style={{
+                    padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                    fontSize: 14, fontWeight: 500,
+                    backgroundColor: activeCat === c.id ? 'var(--blue-600)' : 'var(--surface-2)',
+                    color: activeCat === c.id ? '#fff' : 'var(--ink)'
+                  }}
+              >
+                {c.name}
+              </button>
+          ))}
+        </div>
 
         <section className="bm-section">
           <div className="bm-section-head">
