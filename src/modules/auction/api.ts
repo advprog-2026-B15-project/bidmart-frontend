@@ -82,9 +82,15 @@ function mapBid(b: BidResponse, currentUserId: string | null, index: number): Bi
 
 // API functions
 
-export async function getAuctions(): Promise<AuctionItem[]> {
-  const list = await apiFetch<AuctionResponse[]>(API.auction.list);
-  return list.map(a => mapAuction(a));
+export async function getAuctions(params?: { page?: number; size?: number; status?: string; title?: string }): Promise<{ content: AuctionItem[]; totalPages: number }> {
+  const q = new URLSearchParams();
+  if (params?.page !== undefined) q.set('page', String(params.page));
+  if (params?.size !== undefined) q.set('size', String(params.size));
+  if (params?.status) q.set('status', params.status);
+  if (params?.title) q.set('title', params.title);
+  const url = `${API.auction.list}${q.toString() ? '?' + q.toString() : ''}`;
+  const res = await apiFetch<{ content: AuctionResponse[]; totalPages: number }>(url);
+  return { content: res.content.map(a => mapAuction(a)), totalPages: res.totalPages ?? 1 };
 }
 
 export async function getAuctionById(id: string): Promise<AuctionItem> {

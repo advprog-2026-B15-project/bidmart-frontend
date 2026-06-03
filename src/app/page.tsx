@@ -6,40 +6,11 @@ import Button from '@/components/ui/Button';
 import AuctionCard from '@/components/AuctionCard';
 import { fmtRp } from '@/lib/data';
 import { useAuction } from '@/store/auction-context';
-import { getListings, type Listing } from '@/modules/catalog/api';
+import { getAuctions } from '@/modules/auction/api';
 import { getUsername } from '@/lib/api';
 import type { AuctionItem } from '@/types';
 
-const CAT_ID_MAP: Record<string, string> = {
-  '11111111-1111-1111-1111-111111111111': 'Elektronik',
-  '22222222-2222-2222-2222-222222222222': 'Fashion & Pakaian',
-  '33333333-3333-3333-3333-333333333333': 'Barang Koleksi',
-  '44444444-4444-4444-4444-444444444444': 'Otomotif',
-};
 
-const ART_MAP: Record<string, string> = {
-  '11111111-1111-1111-1111-111111111111': 'bm-art-elec',
-  '22222222-2222-2222-2222-222222222222': 'bm-art-fash',
-  '33333333-3333-3333-3333-333333333333': 'bm-art-coll',
-  '44444444-4444-4444-4444-444444444444': 'bm-art-veh',
-};
-
-function listingToItem(l: Listing, catId?: string): AuctionItem {
-  const artKey = catId ?? l.category?.id;
-  return {
-    id: l.id,
-    title: l.title,
-    price: l.currentPrice ?? l.startingPrice,
-    bids: l.bidCount,
-    ends: new Date(l.endTime).getTime(),
-    art: ART_MAP[artKey ?? ''] ?? 'bm-art-elec',
-    imageUrls: l.imageUrls,
-    cat: l.category?.name ?? 'Lainnya',
-    seller: l.sellerId,
-    rating: 4.5,
-    ratingCount: 0,
-  };
-}
 
 function HomePageContent() {
   const router = useRouter();
@@ -74,17 +45,13 @@ function HomePageContent() {
   const fetchListings = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getListings({
-        page: page,
+      const data = await getAuctions({
+        page,
         size: pageSize,
-        title: searchQuery || undefined,
-        categoryId: activeCat !== 'all' ? activeCat : undefined,
         status: 'ACTIVE',
+        title: searchQuery || undefined,
       });
-      const mapped = data.content
-        .map(l => listingToItem(l, activeCat !== 'all' ? activeCat : undefined))
-        .sort((a, b) => a.ends - b.ends);
-      
+      const mapped = [...data.content].sort((a, b) => a.ends - b.ends);
       setItems(mapped);
       setTotalPages(data.totalPages || 1);
     } catch {
@@ -162,7 +129,7 @@ function HomePageContent() {
       {isFiltered && (
         <div style={{ padding: '20px 0 8px', display: 'flex', alignItems: 'center', gap: 12 }}>
           <h2 style={{ fontSize: 20, fontWeight: 700 }}>
-            {searchQuery ? `Hasil pencarian "${searchQuery}"` : `Kategori: ${CAT_ID_MAP[activeCat] ?? activeCat}`}
+            {searchQuery ? `Hasil pencarian "${searchQuery}"` : `Kategori: ${activeCat}`}
           </h2>
           <button
             onClick={() => { setInputQuery(''); router.push('/'); }}
