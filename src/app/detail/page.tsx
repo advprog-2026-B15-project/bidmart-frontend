@@ -191,7 +191,23 @@ function DetailContent() {
   }
 
   const it = auctionItem;
-  const isLoggedIn = !!getCurrentUserId();
+  const currentUserId = getCurrentUserId();
+  const isLoggedIn = !!currentUserId;
+  const isSeller = currentUserId === auctionRaw?.sellerId;
+  const canDelete = isSeller && bids.length === 0 && auctionRaw?.status !== 'CLOSED' && auctionRaw?.status !== 'WON';
+
+  async function handleDeleteListing() {
+    if (!auctionRaw?.listingId) return;
+    if (!confirm('Apakah Anda yakin ingin menghapus listing ini? Tindakan ini tidak dapat dibatalkan.')) return;
+    try {
+      await deleteListing(auctionRaw.listingId);
+      addToast({ tone: 'success', title: 'Listing Dihapus', desc: 'Listing lelang berhasil dihapus.' });
+      router.push('/');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Gagal menghapus listing.';
+      addToast({ tone: 'error', title: 'Gagal', desc: msg });
+    }
+  }
 
   return (
     <div className="bm-page-wide">
