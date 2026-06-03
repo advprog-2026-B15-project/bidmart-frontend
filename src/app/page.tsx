@@ -1,4 +1,3 @@
-```tsx
 'use client';
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -47,7 +46,7 @@ function HomePageContent() {
   const [activeCat, setActiveCat] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [inputQuery, setInputQuery] = useState('');
-  
+
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const pageSize = 8;
@@ -58,7 +57,7 @@ function HomePageContent() {
     const q = searchParams.get('q') ?? '';
     const cat = searchParams.get('cat') ?? 'all';
     const p = parseInt(searchParams.get('p') ?? '0', 10);
-    
+
     setInputQuery(q);
     setSearchQuery(q);
     setActiveCat(cat);
@@ -84,7 +83,7 @@ function HomePageContent() {
       const mapped = data.content
         .map(l => listingToItem(l, activeCat !== 'all' ? activeCat : undefined))
         .sort((a, b) => a.ends - b.ends);
-      
+
       setItems(mapped);
       setTotalPages(data.totalPages || 1);
     } catch {
@@ -103,13 +102,13 @@ function HomePageContent() {
     if (inputQuery) params.set('q', inputQuery);
     if (activeCat !== 'all') params.set('cat', activeCat);
     params.set('p', '0');
-    router.push(`/?${params}`);
+    router.push(`/?${params.toString()}`);
   }
 
   function goToPage(p: number) {
     const params = new URLSearchParams(searchParams.toString());
     params.set('p', String(p));
-    router.push(`/?${params}`);
+    router.push(`/?${params.toString()}`);
   }
 
   function goDetail(item: AuctionItem) {
@@ -163,8 +162,8 @@ function HomePageContent() {
       {isFiltered && (
         <div style={{ padding: '20px 0 8px', display: 'flex', alignItems: 'center', gap: 12 }}>
           <h2 style={{ fontSize: 20, fontWeight: 700 }}>
-            {searchQuery 
-              ? `Hasil pencarian "${searchQuery}"` 
+            {searchQuery
+              ? `Hasil pencarian "${searchQuery}"`
               : `Kategori: ${activeCat === 'all' ? 'Semua' : activeCategoryName}`}
           </h2>
           <button
@@ -203,10 +202,10 @@ function HomePageContent() {
 
         {totalPages > 1 && (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 32 }}>
-            <Button 
-              variant="secondary" 
-              size="md" 
-              disabled={page === 0} 
+            <Button
+              variant="secondary"
+              size="md"
+              disabled={page === 0}
               onClick={() => goToPage(page - 1)}
             >
               Sebelumnya
@@ -231,10 +230,10 @@ function HomePageContent() {
                 </button>
               ))}
             </div>
-            <Button 
-              variant="secondary" 
-              size="md" 
-              disabled={page >= totalPages - 1} 
+            <Button
+              variant="secondary"
+              size="md"
+              disabled={page >= totalPages - 1}
               onClick={() => goToPage(page + 1)}
             >
               Selanjutnya
@@ -269,5 +268,3 @@ export default function HomePage() {
     </Suspense>
   );
 }
-
-```
