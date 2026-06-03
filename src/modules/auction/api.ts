@@ -95,11 +95,11 @@ export async function getAuctionById(id: string): Promise<AuctionItem> {
 export async function findAuctionByListingId(listingId: string): Promise<AuctionResponse | null> {
   try {
     for (let page = 0; page < 5; page++) {
-      const url = `${API.auction.list}?status=ACTIVE&page=${page}&size=20`;
+      const url = `${API.auction.list}?page=${page}&size=50`;
       const res = await apiFetch<{content: AuctionResponse[]}>(url);
       const found = res.content.find(a => a.listingId === listingId);
       if (found) return found;
-      if (res.content.length < 20) break;
+      if (res.content.length < 50) break;
     }
   } catch (e) {
     console.warn('Fallback search failed', e);
