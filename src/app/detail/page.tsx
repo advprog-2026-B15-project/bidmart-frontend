@@ -8,7 +8,7 @@ import { BlocksCountdown, CompactCountdown, useCountdown } from '@/components/Co
 import { Heart, Shield, Truck, Refresh, Lock, Settings } from '@/components/icons';
 import { fmtRp } from '@/lib/data';
 import { useAuction } from '@/store/auction-context';
-import { getAuctionRaw, getAuctionBids, getAuctionStreamUrl, placeBid } from '@/modules/auction/api';
+import { getAuctionRaw, getAuctionByListingId, getAuctionBids, getAuctionStreamUrl, placeBid } from '@/modules/auction/api';
 import { getListing, deleteListing, type Listing } from '@/modules/catalog/api';
 import { getCurrentUserId } from '@/lib/api';
 import type { AuctionItem, BidEntry } from '@/types';
@@ -94,15 +94,21 @@ function DetailContent() {
     
     async function init() {
       try {
-        const [raw, bidList] = await Promise.all([
-          getAuctionRaw(id!),
-          getAuctionBids(id!)
-        ]);
-        
+        // id from URL may be auction ID or catalog listing ID — try both
+        let raw;
+        try {
+          raw = await getAuctionRaw(id!);
+        } catch {
+          const byListing = await getAuctionByListingId(id!).catch(() => null);
+          if (!byListing) throw new Error('Auction not found');
+          raw = byListing;
+        }
+
         const r = raw as unknown as AuctionRaw;
+        const bidList = await getAuctionBids(r.id);
         setAuctionRaw(r);
         setBids(bidList);
-        
+
         const base = r.currentPrice > 0 ? r.currentPrice : r.startingPrice;
         setBidVal(String(base + r.minimumIncrement));
 
