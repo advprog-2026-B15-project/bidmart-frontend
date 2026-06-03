@@ -93,14 +93,6 @@ function HomePageContent() {
     router.push(`/?${params}`);
   }
 
-  function handleCat(id: string) {
-    setActiveCat(id);
-    const params = new URLSearchParams();
-    if (searchQuery) params.set('q', searchQuery);
-    if (id !== 'all') params.set('cat', id);
-    router.push(`/?${params}`);
-  }
-
   function goDetail(item: AuctionItem) {
     setActiveItem(item);
     router.push(`/detail?id=${item.id}`);
