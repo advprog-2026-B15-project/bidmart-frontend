@@ -137,9 +137,9 @@ function DetailContent() {
     function connect() {
       if (closed || !id) return;
       es = new EventSource(getAuctionStreamUrl(id));
-      es.onmessage = (e) => {
+      const handleUpdate = (raw: string) => {
         try {
-          const data = JSON.parse(e.data as string) as { currentPrice?: number; endTime?: string; status?: string };
+          const data = JSON.parse(raw) as { currentPrice?: number; endTime?: string; status?: string };
           setAuctionRaw(prev => {
             if (!prev) return prev;
             return {
@@ -154,6 +154,8 @@ function DetailContent() {
           // ignore malformed SSE frames
         }
       };
+      es.addEventListener('BID_UPDATE', e => handleUpdate((e as MessageEvent).data as string));
+      es.addEventListener('message', e => handleUpdate((e as MessageEvent).data as string));
       es.onerror = () => {
         es.close();
         if (!closed) timer = setTimeout(connect, 3000);

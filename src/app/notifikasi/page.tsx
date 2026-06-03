@@ -7,6 +7,7 @@ import Switch from '@/components/ui/Switch';
 import { Check, Gavel, AlertTri, Trophy, Clock, Box, Info } from '@/components/icons';
 import { getMyNotifications, markNotificationRead, getNotificationPreferences, updateNotificationPreferences } from '@/modules/booking/api';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { openAuthenticatedSse } from '@/lib/sse';
 import type { Notification } from '@/types';
 
 function iconFor(t: string) {
@@ -59,6 +60,42 @@ export default function NotifikasiPage() {
 
     return () => {
       window.clearInterval(intervalId);
+    };
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let reconnectTimer: number | undefined;
+    let stopped = false;
+
+    async function refreshNotifications() {
+      try {
+        const notifications = await getMyNotifications();
+        setList(notifications);
+      } catch {
+        // keep the previous list when refresh fails
+      }
+    }
+
+    async function connect() {
+      try {
+        await openAuthenticatedSse('/api/notifications/stream', event => {
+          if (event.event === 'heartbeat' || event.event === 'connected') return;
+          void refreshNotifications();
+        }, controller.signal);
+      } catch {
+        if (!stopped) {
+          reconnectTimer = window.setTimeout(connect, 3000);
+        }
+      }
+    }
+
+    void connect();
+
+    return () => {
+      stopped = true;
+      controller.abort();
+      if (reconnectTimer) window.clearTimeout(reconnectTimer);
     };
   }, []);
 

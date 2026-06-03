@@ -1,5 +1,6 @@
 import { apiFetch, getCurrentUserId } from '@/lib/api';
 import { API } from '@/lib/endpoints';
+import { getSseGatewayUrl } from '@/lib/sse';
 import type { AuctionItem, BidEntry } from '@/types';
 
 // Backend response types
@@ -132,9 +133,9 @@ export async function activateAuction(auctionId: string): Promise<AuctionRespons
   });
 }
 
-// SSE stream URL — use with EventSource (routes through Vercel proxy)
+// SSE stream URL — connect directly to the gateway so the browser keeps the stream open.
 export function getAuctionStreamUrl(auctionId: string): string {
-  return `/api/proxy${API.auction.stream(auctionId)}`;
+  return getSseGatewayUrl(API.auction.stream(auctionId));
 }
 
 // Raw auction data (for detail page — includes minimumIncrement)
