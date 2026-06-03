@@ -1,6 +1,7 @@
 'use client';
 import { usePathname } from 'next/navigation';
 import { AuctionProvider, useAuction } from '@/store/auction-context';
+import { NotificationProvider } from '@/store/notification-context';
 import TopNav from './TopNav';
 import Footer from './Footer';
 import Toaster from './Toaster';
@@ -25,7 +26,9 @@ function InnerLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 export default function ClientLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <AuctionProvider>
-      <InnerLayout>{children}</InnerLayout>
+      <NotificationProvider>
+        <InnerLayout>{children}</InnerLayout>
+      </NotificationProvider>
     </AuctionProvider>
   );
 }

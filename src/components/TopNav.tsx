@@ -6,7 +6,7 @@ import { Bell, Wallet, ChevronDown, Search, Package, Plus, Shield, Settings, Log
 import { CAT_PILLS } from '@/lib/data';
 import Icon from './icons';
 import { getUsername, getEmail, clearToken, getToken, getCurrentRole } from '@/lib/api';
-import { getMyNotifications } from '@/modules/booking/api';
+import { useRealtimeNotifications } from '@/store/notification-context';
 
 function getInitials(name: string): string {
   const clean = name.includes('@') ? name.split('@')[0] : name;
@@ -31,9 +31,9 @@ function TopNavContent() {
   const [displayName, setDisplayName] = useState('');
   const [displayEmail, setDisplayEmail] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [role, setRole] = useState('');
   const userRef = useRef<HTMLDivElement>(null);
+  const { unreadCount } = useRealtimeNotifications();
 
   // Sync state with URL during render phase (React-recommended pattern for sync)
   if (urlQ !== prevUrl.q || urlCat !== prevUrl.cat) {
@@ -53,11 +53,7 @@ function TopNavContent() {
         setDisplayName(name);
         setDisplayEmail(email);
         setRole(getCurrentRole() ?? '');
-        getMyNotifications()
-          .then(list => setUnreadCount(list.filter(n => n.unread).length))
-          .catch(() => {});
       } else {
-        setUnreadCount(0);
         setRole('');
       }
     };

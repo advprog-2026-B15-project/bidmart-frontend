@@ -2,8 +2,9 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Package, Heart, Gavel, Bell, Wallet, CreditCard, List, Plus, TrendUp, User, Lock, Settings } from './icons';
-import { getMyNotifications, getMyBookings, getMySellingBookings } from '@/modules/booking/api';
+import { getMyBookings, getMySellingBookings } from '@/modules/booking/api';
 import { getToken } from '@/lib/api';
+import { useRealtimeNotifications } from '@/store/notification-context';
 
 interface AccountSideNavProps {
   active: string;
@@ -30,15 +31,12 @@ function getRole(): string | null {
 
 export default function AccountSideNav({ active }: Readonly<AccountSideNavProps>) {
   const router = useRouter();
-  const [unreadNotif, setUnreadNotif] = useState(0);
   const [activeOrders, setActiveOrders] = useState(0);
   const role = getRole();
+  const { unreadCount } = useRealtimeNotifications();
 
   useEffect(() => {
     if (!getToken()) return;
-    getMyNotifications()
-      .then(list => setUnreadNotif(list.filter(n => n.unread).length))
-      .catch(() => {});
     Promise.all([getMyBookings(), getMySellingBookings()])
       .then(([buying, selling]) => {
         const active = [...buying, ...selling].filter(o => ['wait', 'ship'].includes(o.status)).length;
@@ -52,7 +50,7 @@ export default function AccountSideNav({ active }: Readonly<AccountSideNavProps>
     { id: 'orders',        label: 'Pesanan',         ico: <Package width={16} height={16}/>,  badge: activeOrders || undefined,  path: '/pesanan' },
     { id: 'watchlist',     label: 'Watchlist',        ico: <Heart width={16} height={16}/> },
     { id: 'bidding',       label: 'Sedang menawar',   ico: <Gavel width={16} height={16}/>, path: '/sedang-menawar' },
-    { id: 'notifications', label: 'Notifikasi',       ico: <Bell width={16} height={16}/>,     badge: unreadNotif || undefined,  path: '/notifikasi' },
+    { id: 'notifications', label: 'Notifikasi',       ico: <Bell width={16} height={16}/>,     badge: unreadCount || undefined,  path: '/notifikasi' },
     { group: 'Keuangan' },
     { id: 'wallet',        label: 'Dompet',           ico: <Wallet width={16} height={16}/>,              path: '/wallet' },
     { id: 'payment',       label: 'Metode bayar',     ico: <CreditCard width={16} height={16}/> },

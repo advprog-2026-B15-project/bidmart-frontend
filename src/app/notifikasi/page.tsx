@@ -5,9 +5,9 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Switch from '@/components/ui/Switch';
 import { Check, Gavel, AlertTri, Trophy, Clock, Box, Info } from '@/components/icons';
-import { getMyNotifications, markNotificationRead, getNotificationPreferences, updateNotificationPreferences } from '@/modules/booking/api';
+import { markNotificationRead, getNotificationPreferences, updateNotificationPreferences } from '@/modules/booking/api';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
-import { openAuthenticatedSse } from '@/lib/sse';
+import { useRealtimeNotifications } from '@/store/notification-context';
 import type { Notification } from '@/types';
 
 function iconFor(t: string) {
@@ -26,90 +26,38 @@ export default function NotifikasiPage() {
   const [tab, setTab] = useState<'all' | 'bids' | 'auctions' | 'orders'>('all');
   const [emailOn, setEmailOn] = useState(false);
   const [inAppOn, setInAppOn] = useState(true);
-  const [list, setList] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    notifications: list,
+    unreadCount: unreadCt,
+    loading,
+    markNotificationReadLocally,
+    markAllNotificationsReadLocally,
+  } = useRealtimeNotifications();
 
   useEffect(() => {
     async function load() {
       try {
-        const [notifs, prefs] = await Promise.all([
-          getMyNotifications(),
-          getNotificationPreferences().catch(() => null),
-        ]);
-        setList(notifs);
+        const prefs = await getNotificationPreferences().catch(() => null);
         if (prefs) {
           setEmailOn(prefs.emailEnabled ?? false);
           setInAppOn(prefs.inAppEnabled ?? true);
         }
-      } catch {
-        setList([]);
-      } finally {
-        setLoading(false);
-      }
+      } catch {}
     }
     load();
-  }, []);
-
-  useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      if (document.visibilityState !== 'visible') return;
-      getMyNotifications()
-        .then(setList)
-        .catch(() => {});
-    }, 15000);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    let reconnectTimer: number | undefined;
-    let stopped = false;
-
-    async function refreshNotifications() {
-      try {
-        const notifications = await getMyNotifications();
-        setList(notifications);
-      } catch {
-        // keep the previous list when refresh fails
-      }
-    }
-
-    async function connect() {
-      try {
-        await openAuthenticatedSse('/api/notifications/stream', event => {
-          if (event.event === 'heartbeat' || event.event === 'connected') return;
-          void refreshNotifications();
-        }, controller.signal);
-      } catch {
-        if (!stopped) {
-          reconnectTimer = window.setTimeout(connect, 3000);
-        }
-      }
-    }
-
-    void connect();
-
-    return () => {
-      stopped = true;
-      controller.abort();
-      if (reconnectTimer) window.clearTimeout(reconnectTimer);
-    };
   }, []);
 
   async function markAllRead() {
     const unread = list.filter(n => n.unread);
     await Promise.allSettled(unread.map(n => markNotificationRead(n.id)));
-    setList(prev => prev.map(n => ({ ...n, unread: false })));
+    markAllNotificationsReadLocally();
   }
 
   async function toggleRead(id: string) {
     const notif = list.find(n => n.id === id);
     if (!notif?.unread) return;
     await markNotificationRead(id).catch(() => {});
-    setList(prev => prev.map(n => n.id === id ? { ...n, unread: false } : n));
+    markNotificationReadLocally(id);
   }
 
   async function handlePrefChange(field: 'email' | 'inApp', val: boolean) {
@@ -135,7 +83,6 @@ export default function NotifikasiPage() {
     auctions: list.filter(filterMap.auctions).length,
     orders:   list.filter(filterMap.orders).length,
   };
-  const unreadCt = list.filter(n => n.unread).length;
 
   return (
     <div className="bm-page-wide">
