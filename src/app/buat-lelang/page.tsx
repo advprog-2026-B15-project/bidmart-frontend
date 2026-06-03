@@ -8,6 +8,7 @@ import { fmtRp } from '@/lib/data';
 import { createListing, publishListing } from '@/modules/catalog/api';
 import { createAuction, activateAuction } from '@/modules/auction/api';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { useAuction } from '@/store/auction-context';
 
 interface CategoryInfo {
   id: string;
@@ -39,6 +40,7 @@ const DURATIONS = [1, 3, 5, 7, 10, 14];
 export default function BuatLelangPage() {
   useRequireAuth('SELLER');
   const router = useRouter();
+  const { addToast } = useAuction();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const targetSlotRef = useRef<number | null>(null);
   const [imgs, setImgs] = useState<(string | null)[]>([null, null, null, null, null, null]);
