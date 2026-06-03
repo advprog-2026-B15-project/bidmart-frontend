@@ -9,8 +9,6 @@ import { useAuction } from '@/store/auction-context';
 import { getListings, type Listing } from '@/modules/catalog/api';
 import { getUsername } from '@/lib/api';
 import type { AuctionItem } from '@/types';
-import { CAT_PILLS } from '@/lib/data';
-import Icon from '@/components/icons';
 
 const CAT_ID_MAP: Record<string, string> = {
   '11111111-1111-1111-1111-111111111111': 'Elektronik',

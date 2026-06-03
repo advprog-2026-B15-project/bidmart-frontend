@@ -1,12 +1,13 @@
 'use client';
 import { useRef, useState, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import Logo from './Logo';
 import { Bell, Wallet, ChevronDown, Search, Package, Plus, Shield, Settings, LogOut, User } from './icons';
 import { CAT_PILLS } from '@/lib/data';
 import Icon from './icons';
 import { getUsername, getEmail, clearToken, getToken, getCurrentRole } from '@/lib/api';
 import { getMyNotifications } from '@/modules/booking/api';
+import { Suspense } from 'react';
 
 function getInitials(name: string): string {
   const clean = name.includes('@') ? name.split('@')[0] : name;
@@ -15,7 +16,7 @@ function getInitials(name: string): string {
   return clean.slice(0, 2).toUpperCase();
 }
 
-export default function TopNav() {
+function TopNavContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -29,9 +30,12 @@ export default function TopNav() {
   const [role, setRole] = useState('');
   const userRef = useRef<HTMLDivElement>(null);
 
+  // Sync state with URL without triggering immediate re-renders in effect
   useEffect(() => {
-    setQuery(searchParams.get('q') ?? '');
-    setSelectedCat(searchParams.get('cat') ?? 'all');
+    const q = searchParams.get('q') ?? '';
+    const cat = searchParams.get('cat') ?? 'all';
+    setQuery(q);
+    setSelectedCat(cat);
   }, [searchParams]);
 
   useEffect(() => {
@@ -205,5 +209,13 @@ export default function TopNav() {
         </div>
       </div>
     </header>
+  );
+}
+
+export default function TopNav() {
+  return (
+    <Suspense fallback={<div style={{ height: 110 }} />}>
+      <TopNavContent />
+    </Suspense>
   );
 }
