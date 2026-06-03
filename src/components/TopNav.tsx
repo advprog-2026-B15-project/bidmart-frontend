@@ -173,6 +173,7 @@ function TopNavContent() {
                         {role === 'SELLER' && (
                           <>
                             <div className="sep"/>
+                            <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/listing-saya'); }}><Package width={16} height={16}/>Listing saya</button>
                             <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/buat-lelang'); }}><Plus width={16} height={16}/>Jual barang</button>
                           </>
                         )}
