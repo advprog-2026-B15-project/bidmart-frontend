@@ -9,6 +9,7 @@ import { Heart, Shield, Truck, Refresh, Lock, Settings } from '@/components/icon
 import { fmtRp } from '@/lib/data';
 import { useAuction } from '@/store/auction-context';
 import { getAuctionRaw, getAuctionBids, getAuctionStreamUrl, placeBid } from '@/modules/auction/api';
+import { getListing, type Listing } from '@/modules/catalog/api';
 import { getCurrentUserId } from '@/lib/api';
 import type { AuctionItem, BidEntry } from '@/types';
 
@@ -16,7 +17,6 @@ import type { AuctionItem, BidEntry } from '@/types';
 interface AuctionRaw {
   id: string;
   title: string;
-  description: string;
   startingPrice: number;
   currentPrice: number;
   minimumIncrement: number;
@@ -34,6 +34,7 @@ function DetailContent() {
   const id = searchParams.get('id');
 
   const [auctionRaw, setAuctionRaw] = useState<AuctionRaw | null>(null);
+  const [listing, setListing] = useState<Listing | null>(null);
   const [bids, setBids] = useState<BidEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [bidding, setBidding] = useState(false);
@@ -56,8 +57,8 @@ function DetailContent() {
         bids: bids.length,
         ends: new Date(auctionRaw.endTime).getTime(),
         art: activeItem?.art ?? 'bm-art-elec',
-        imageUrls: activeItem?.imageUrls,
-        cat: activeItem?.cat ?? 'elec',
+        imageUrls: listing?.imageUrls ?? activeItem?.imageUrls,
+        cat: listing?.category?.name ?? activeItem?.cat ?? 'Lainnya',
         seller: auctionRaw.sellerId,
         rating: 0,
         ratingCount: 0,
@@ -90,19 +91,34 @@ function DetailContent() {
       router.push('/');
       return;
     }
-    Promise.all([getAuctionRaw(id), getAuctionBids(id)])
-      .then(([raw, bidList]) => {
-        setAuctionRaw(raw as unknown as AuctionRaw);
-        setBids(bidList);
+    
+    async function init() {
+      try {
+        const [raw, bidList] = await Promise.all([
+          getAuctionRaw(id!),
+          getAuctionBids(id!)
+        ]);
+        
         const r = raw as unknown as AuctionRaw;
+        setAuctionRaw(r);
+        setBids(bidList);
+        
         const base = r.currentPrice > 0 ? r.currentPrice : r.startingPrice;
         setBidVal(String(base + r.minimumIncrement));
-      })
-      .catch((err) => {
+
+        // Fetch full listing details to get the description
+        if (r.listingId) {
+          const l = await getListing(r.listingId);
+          setListing(l);
+        }
+      } catch (err) {
         console.error("Failed to fetch auction details:", err);
-        // Removed router.push('/') to prevent automatic kick-out
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    init();
   }, [id, router]);
 
   // SSE — real-time price and bid updates with auto-reconnect
@@ -218,6 +234,7 @@ function DetailContent() {
           )}
           <dl className="bm-spec-table" style={{ marginTop: 18 }}>
             <dt>Penjual</dt>         <dd>{it.seller}</dd>
+            <dt>Kategori</dt>        <dd>{it.cat}</dd>
             <dt>Status</dt>          <dd>{auctionRaw?.status ?? '-'}</dd>
             <dt>Harga awal</dt>      <dd>{fmtRp(startingPrice || it.price)}</dd>
             <dt>Min. kenaikan</dt>   <dd>{fmtRp(minimumIncrement)}</dd>
@@ -264,45 +281,60 @@ function DetailContent() {
 
             <div className="bm-bid-divider"/>
 
-            {isLoggedIn ? (
-              <div>
-                <label htmlFor="bid-amount" className="bm-bid-lbl" style={{ display: 'block', marginBottom: 8 }}>Tawaran kamu</label>
-                <div className="bm-bid-input-row">
-                  <div className="bm-prefix-input" style={{ flex: 1 }}>
-                    <span className="px">Rp</span>
-                    <input
-                      id="bid-amount"
-                      type="text"
-                      value={Number(bidVal.replace(/\D/g, '')).toLocaleString('id-ID')}
-                      onChange={e => setBidVal(e.target.value.replace(/\D/g, ''))}
-                    />
+            {isLoggedIn && isSeller ? (
+              <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                <p style={{ color: 'var(--ink-2)', fontSize: 13, marginBottom: 12 }}>Ini adalah listing kamu sendiri. Kamu tidak bisa menawar barang ini.</p>
+                {canDelete ? (
+                  <Button
+                    variant="secondary" size="md"
+                    onClick={handleDeleteListing}
+                    style={{ width: '100%', color: 'var(--red-600)', borderColor: 'var(--red-300)', background: 'var(--red-50)' }}
+                  >
+                    Batalkan &amp; Hapus Listing
+                  </Button>
+                ) : (
+                  <p style={{ color: 'var(--ink-3)', fontSize: 12 }}>Listing tidak bisa dihapus karena sudah ada bid yang masuk atau sudah ditutup.</p>
+                )}
+              </div>
+            ) : isLoggedIn ? (
+              <>
+                <div>
+                  <label htmlFor="bid-amount" className="bm-bid-lbl" style={{ display: 'block', marginBottom: 8 }}>Tawaran kamu</label>
+                  <div className="bm-bid-input-row">
+                    <div className="bm-prefix-input" style={{ flex: 1 }}>
+                      <span className="px">Rp</span>
+                      <input
+                        id="bid-amount"
+                        type="text"
+                        value={Number(bidVal.replace(/\D/g, '')).toLocaleString('id-ID')}
+                        onChange={e => setBidVal(e.target.value.replace(/\D/g, ''))}
+                      />
+                    </div>
+                  </div>
+                  <div className="bm-bid-hint" style={{ marginTop: 8 }}>
+                    Minimum tawaran berikutnya: <b style={{ color: 'var(--ink)' }}>{fmtRp(minNext)}</b> · Kelipatan {fmtRp(minimumIncrement)}
                   </div>
                 </div>
-                <div className="bm-bid-hint" style={{ marginTop: 8 }}>
-                  Minimum tawaran berikutnya: <b style={{ color: 'var(--ink)' }}>{fmtRp(minNext)}</b> · Kelipatan {fmtRp(minimumIncrement)}
-                </div>
-              </div>
+
+                <Button
+                  variant="primary" size="lg"
+                  onClick={() => openModal(it, Number.parseInt(bidVal.replace(/\D/g, ''), 10) || minNext)}
+                  style={{ width: '100%', marginBottom: 12, marginTop: 16 }}
+                  disabled={cd.total <= 0 || auctionRaw?.status === 'CLOSED' || auctionRaw?.status === 'WON' || auctionRaw?.status === 'UNSOLD'}
+                >
+                  {cd.total <= 0 || auctionRaw?.status === 'CLOSED' || auctionRaw?.status === 'WON' || auctionRaw?.status === 'UNSOLD' ? 'Lelang Ditutup' : 'Tawar Sekarang'}
+                </Button>
+
+                <a href="#auto-bid" style={{ fontSize: 13, color: 'var(--blue-600)', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  <Settings width={14} height={14}/>
+                  Atur Auto-bid (Proxy Bid)
+                </a>
+              </>
             ) : (
               <div style={{ textAlign: 'center', color: 'var(--ink-2)', fontSize: 13, padding: '8px 0' }}>
                 <a href="/login" style={{ color: 'var(--blue-600)', fontWeight: 600 }}>Masuk</a> untuk ikut menawar
               </div>
             )}
-
-            {isLoggedIn && (
-              <Button
-                variant="primary" size="lg"
-                onClick={() => openModal(it, Number.parseInt(bidVal.replace(/\D/g, ''), 10) || minNext)}
-                style={{ width: '100%', marginBottom: 12 }}
-                disabled={cd.total <= 0 || auctionRaw?.status === 'CLOSED' || auctionRaw?.status === 'WON' || auctionRaw?.status === 'UNSOLD'}
-              >
-                {cd.total <= 0 || auctionRaw?.status === 'CLOSED' || auctionRaw?.status === 'WON' || auctionRaw?.status === 'UNSOLD' ? 'Lelang Ditutup' : 'Tawar Sekarang'}
-              </Button>
-            )}
-
-            <a href="#auto-bid" style={{ fontSize: 13, color: 'var(--blue-600)', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              <Settings width={14} height={14}/>
-              Atur Auto-bid (Proxy Bid)
-            </a>
           </div>
 
           <div className="bm-trust-row">
@@ -323,8 +355,8 @@ function DetailContent() {
       <div className="bm-detail-body" style={{ maxWidth: '100%', padding: '24px 0 48px' }}>
         {tab === 'desc' && (
           <div style={{ maxWidth: 760, color: 'var(--ink-1)', lineHeight: 1.7, fontSize: 15 }}>
-            {auctionRaw?.description ? (
-              <div style={{ whiteSpace: 'pre-wrap' }}>{auctionRaw.description}</div>
+            {listing?.description ? (
+              <div style={{ whiteSpace: 'pre-wrap' }}>{listing.description}</div>
             ) : (
               <p style={{ color: 'var(--ink-3)', fontStyle: 'italic' }}>Deskripsi tidak tersedia untuk lelang ini.</p>
             )}
