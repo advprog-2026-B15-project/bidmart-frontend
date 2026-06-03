@@ -12,6 +12,7 @@ import { getAuctionRaw, getAuctionBids, getAuctionStreamUrl, placeBid } from '@/
 import { getCurrentUserId } from '@/lib/api';
 import type { AuctionItem, BidEntry } from '@/types';
 
+
 interface AuctionRaw {
   id: string;
   title: string;
