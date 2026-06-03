@@ -9,7 +9,7 @@ import { Heart, Shield, Truck, Refresh, Lock, Settings } from '@/components/icon
 import { fmtRp } from '@/lib/data';
 import { useAuction } from '@/store/auction-context';
 import { getAuctionRaw, getAuctionBids, getAuctionStreamUrl, placeBid } from '@/modules/auction/api';
-import { getListing, type Listing } from '@/modules/catalog/api';
+import { getListing, deleteListing, type Listing } from '@/modules/catalog/api';
 import { getCurrentUserId } from '@/lib/api';
 import type { AuctionItem, BidEntry } from '@/types';
 
