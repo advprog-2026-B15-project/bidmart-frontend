@@ -331,6 +331,7 @@ export default function BuatLelangPage() {
                 <b style={{ fontVariantNumeric: 'tabular-nums' }}>{val}</b>
               </div>
             ))}
+
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
               <span style={{ color: 'var(--ink-2)' }}>Anti-sniping</span>
               <b style={{ color: antiSnipe ? 'var(--green-700)' : 'var(--ink-3)' }}>{antiSnipe ? 'Aktif' : 'Mati'}</b>
