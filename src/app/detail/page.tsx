@@ -8,7 +8,7 @@ import { BlocksCountdown, CompactCountdown, useCountdown } from '@/components/Co
 import { Heart, Shield, Truck, Refresh, Lock, Settings } from '@/components/icons';
 import { fmtRp } from '@/lib/data';
 import { useAuction } from '@/store/auction-context';
-import { getAuctionRaw, getAuctionBids, getAuctionStreamUrl, placeBid } from '@/modules/auction/api';
+import { getAuctionRaw, getAuctionBids, getAuctionStreamUrl, placeBid, findAuctionByListingId } from '@/modules/auction/api';
 import { getCurrentUserId } from '@/lib/api';
 import type { AuctionItem, BidEntry } from '@/types';
 
@@ -98,9 +98,15 @@ function DetailContent() {
         const base = r.currentPrice > 0 ? r.currentPrice : r.startingPrice;
         setBidVal(String(base + r.minimumIncrement));
       })
-      .catch((err) => {
+      .catch(async (err) => {
         console.error("Failed to fetch auction details:", err);
-        // Removed router.push('/') to prevent automatic kick-out
+        // Fallback: the id might be a listingId from the catalog homepage.
+        const auction = await findAuctionByListingId(id);
+        if (auction) {
+          router.replace(`/detail?id=${auction.id}`);
+        } else {
+          router.push('/');
+        }
       })
       .finally(() => setLoading(false));
   }, [id, router]);
