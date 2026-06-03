@@ -9,18 +9,30 @@ interface AccountSideNavProps {
   active: string;
 }
 
-type NavGroup = { group: string };
-type NavItem = { id: string; label: string; ico: React.ReactNode; badge?: number; path?: string };
+type NavGroup = { group: string; sellerOnly?: boolean };
+type NavItem = { id: string; label: string; ico: React.ReactNode; badge?: number; path?: string; sellerOnly?: boolean };
 type NavEntry = NavGroup | NavItem;
 
 function isGroup(e: NavEntry): e is NavGroup {
   return 'group' in e;
 }
 
+function getRole(): string | null {
+  const token = getToken();
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.role ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export default function AccountSideNav({ active }: Readonly<AccountSideNavProps>) {
   const router = useRouter();
   const [unreadNotif, setUnreadNotif] = useState(0);
   const [activeOrders, setActiveOrders] = useState(0);
+  const role = getRole();
 
   useEffect(() => {
     if (!getToken()) return;
@@ -44,10 +56,10 @@ export default function AccountSideNav({ active }: Readonly<AccountSideNavProps>
     { group: 'Keuangan' },
     { id: 'wallet',        label: 'Dompet',           ico: <Wallet width={16} height={16}/>,              path: '/wallet' },
     { id: 'payment',       label: 'Metode bayar',     ico: <CreditCard width={16} height={16}/> },
-    { group: 'Jualan' },
-    { id: 'listings',      label: 'Listing saya',     ico: <List width={16} height={16}/>,               path: '/listing-saya' },
-    { id: 'create',        label: 'Buat lelang baru', ico: <Plus width={16} height={16}/>,               path: '/buat-lelang' },
-    { id: 'sales',         label: 'Penjualan',        ico: <TrendUp width={16} height={16}/> },
+    { group: 'Jualan', sellerOnly: true },
+    { id: 'listings',      label: 'Listing saya',     ico: <List width={16} height={16}/>,               path: '/listing-saya', sellerOnly: true },
+    { id: 'create',        label: 'Buat lelang baru', ico: <Plus width={16} height={16}/>,               path: '/buat-lelang', sellerOnly: true },
+    { id: 'sales',         label: 'Penjualan',        ico: <TrendUp width={16} height={16}/>,            sellerOnly: true },
     { group: 'Akun' },
     { id: 'profile',       label: 'Profil',           ico: <User width={16} height={16}/>,   path: '/profil' },
     { id: 'security',      label: 'Keamanan',         ico: <Lock width={16} height={16}/>,   path: '/keamanan' },
@@ -56,7 +68,7 @@ export default function AccountSideNav({ active }: Readonly<AccountSideNavProps>
 
   return (
     <nav className="bm-sidenav">
-      {items.map(it =>
+      {items.filter(it => !it.sellerOnly || role === 'SELLER').map(it =>
         isGroup(it) ? (
           <div key={'group-' + it.group} className="bm-sidenav-h">{it.group}</div>
         ) : (
