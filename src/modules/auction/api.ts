@@ -27,6 +27,14 @@ interface BidResponse {
   createdAt: string;
 }
 
+export interface MyBidAuction {
+  auction: AuctionItem;
+  myHighestBid: number;
+  isTopBidder: boolean;
+  totalBids: number;
+  lastBidAt: string | null;
+}
+
 export interface CreateAuctionRequest {
   listingId: string;
   title: string;
@@ -138,4 +146,50 @@ export async function getAuctionRaw(id: string): Promise<AuctionResponse> {
 export async function getAuctionByListingId(listingId: string): Promise<AuctionResponse | null> {
   const res = await apiFetch<{ content: AuctionResponse[] }>(`${API.auction.list}?listingId=${listingId}&status=ACTIVE&size=1`);
   return res.content?.[0] ?? null;
+}
+
+export async function getMyActiveBidAuctions(): Promise<MyBidAuction[]> {
+  const userId = getCurrentUserId();
+  if (!userId) return [];
+
+  const auctionMap = new Map<string, AuctionResponse>();
+  const statuses = ['ACTIVE', 'EXTENDED'] as const;
+
+  for (const status of statuses) {
+    const firstPage = await apiFetch<{ content: AuctionResponse[]; totalPages: number }>(`${API.auction.list}?status=${status}&page=0&size=50`);
+    firstPage.content.forEach(auction => auctionMap.set(auction.id, auction));
+
+    const pageLimit = Math.min(firstPage.totalPages ?? 1, 3);
+    for (let page = 1; page < pageLimit; page += 1) {
+      const nextPage = await apiFetch<{ content: AuctionResponse[] }>(`${API.auction.list}?status=${status}&page=${page}&size=50`);
+      nextPage.content.forEach(auction => auctionMap.set(auction.id, auction));
+    }
+  }
+
+  const auctions = Array.from(auctionMap.values());
+  const results: MyBidAuction[] = [];
+
+  for (let i = 0; i < auctions.length; i += 8) {
+    const batch = auctions.slice(i, i + 8);
+    const entries = await Promise.all(batch.map(async auction => {
+      const bids = await apiFetch<BidResponse[]>(API.auction.bids(auction.id)).catch(() => null);
+      if (!bids?.length) return null;
+
+      const myBids = bids.filter(bid => bid.bidderId === userId);
+      if (!myBids.length) return null;
+
+      return {
+        auction: mapAuction(auction, bids.length),
+        myHighestBid: Math.max(...myBids.map(bid => bid.amount)),
+        isTopBidder: bids[0]?.bidderId === userId,
+        totalBids: bids.length,
+        lastBidAt: myBids[0]?.createdAt ?? null,
+      } satisfies MyBidAuction;
+    }));
+
+    const validEntries = entries.filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+    results.push(...validEntries);
+  }
+
+  return results.sort((a, b) => a.auction.ends - b.auction.ends);
 }

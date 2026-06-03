@@ -51,7 +51,7 @@ export default function AccountSideNav({ active }: Readonly<AccountSideNavProps>
     { group: 'Aktivitas' },
     { id: 'orders',        label: 'Pesanan',         ico: <Package width={16} height={16}/>,  badge: activeOrders || undefined,  path: '/pesanan' },
     { id: 'watchlist',     label: 'Watchlist',        ico: <Heart width={16} height={16}/> },
-    { id: 'bidding',       label: 'Sedang menawar',   ico: <Gavel width={16} height={16}/> },
+    { id: 'bidding',       label: 'Sedang menawar',   ico: <Gavel width={16} height={16}/>, path: '/sedang-menawar' },
     { id: 'notifications', label: 'Notifikasi',       ico: <Bell width={16} height={16}/>,     badge: unreadNotif || undefined,  path: '/notifikasi' },
     { group: 'Keuangan' },
     { id: 'wallet',        label: 'Dompet',           ico: <Wallet width={16} height={16}/>,              path: '/wallet' },

@@ -2,7 +2,7 @@
 import { useRef, useState, useEffect, Suspense } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import Logo from './Logo';
-import { Bell, Wallet, ChevronDown, Search, Package, Plus, Shield, Settings, LogOut, User } from './icons';
+import { Bell, Wallet, ChevronDown, Search, Package, Plus, Shield, Settings, LogOut, User, Gavel } from './icons';
 import { CAT_PILLS } from '@/lib/data';
 import Icon from './icons';
 import { getUsername, getEmail, clearToken, getToken, getCurrentRole } from '@/lib/api';
@@ -169,6 +169,7 @@ function TopNavContent() {
                       <>
                         <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/wallet'); }}><Wallet width={16} height={16}/>Dompet saya</button>
                         <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/pesanan'); }}><Package width={16} height={16}/>Pesanan</button>
+                        <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/sedang-menawar'); }}><Gavel width={16} height={16}/>Sedang menawar</button>
                         <button type="button" className="row" onClick={() => { setUserOpen(false); router.push('/notifikasi'); }}><Bell width={16} height={16}/>Notifikasi</button>
                         {role === 'SELLER' && (
                           <>
