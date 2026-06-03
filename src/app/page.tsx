@@ -73,7 +73,6 @@ function HomePageContent() {
   const fetchListings = useCallback(async () => {
     setLoading(true);
     try {
-      // PERBAIKAN: Menggunakan getListings, bukan getAuctions
       const data = await getListings({
         page: page,
         size: pageSize,
@@ -141,6 +140,42 @@ function HomePageContent() {
                     />
                     <Button variant="primary" size="lg" type="submit">Cari</Button>
                   </form>
+
+                  <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
+                    <button
+                        type="button"
+                        onClick={() => router.push('/')}
+                        style={{
+                          padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                          fontSize: 14, fontWeight: 500,
+                          backgroundColor: activeCat === 'all' ? 'var(--blue-600)' : 'var(--surface-2)',
+                          color: activeCat === 'all' ? '#fff' : 'var(--ink)'
+                        }}
+                    >
+                      Semua
+                    </button>
+                    {categories.map(c => (
+                        <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => {
+                              const params = new URLSearchParams(searchParams.toString());
+                              params.set('cat', c.id);
+                              params.set('p', '0');
+                              router.push(`/?${params.toString()}`);
+                            }}
+                            style={{
+                              padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                              fontSize: 14, fontWeight: 500,
+                              backgroundColor: activeCat === c.id ? 'var(--blue-600)' : 'var(--surface-2)',
+                              color: activeCat === c.id ? '#fff' : 'var(--ink)'
+                            }}
+                        >
+                          {c.name}
+                        </button>
+                    ))}
+                  </div>
+
                 </div>
                 <div className="bm-hero-art">
                   <div className="bm-hero-tile bm-hero-tile-1">
