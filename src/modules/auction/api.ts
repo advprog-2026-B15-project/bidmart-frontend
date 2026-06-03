@@ -101,7 +101,7 @@ export async function getAuctionBids(auctionId: string): Promise<BidEntry[]> {
 export async function placeBid(auctionId: string, amount: number): Promise<BidResponse> {
   return apiFetch<BidResponse>(API.auction.placeBid(auctionId), {
     method: 'POST',
-    body: JSON.stringify({ amount }),
+    body: JSON.stringify({ amount, auctionId }),
   });
 }
 
