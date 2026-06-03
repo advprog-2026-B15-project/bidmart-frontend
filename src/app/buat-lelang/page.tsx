@@ -9,7 +9,24 @@ import { createListing, publishListing } from '@/modules/catalog/api';
 import { createAuction, activateAuction } from '@/modules/auction/api';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 
-const CATEGORY_TREE = CAT_TREE as Record<string, Record<string, string[]>>;
+const CATEGORY_TREE: Record<string, {id: string, sub: Record<string, string[]>}> = {
+  'Elektronik': {
+    id: '11111111-1111-1111-1111-111111111111',
+    sub: { 'Audio & Video': ['Headphone', 'Speaker'], 'Gadget': ['Smartphone', 'Tablet'] }
+  },
+  'Fashion & Pakaian': {
+    id: '22222222-2222-2222-2222-222222222222',
+    sub: { 'Pria': ['Kaos', 'Kemeja'], 'Wanita': ['Gaun', 'Tas'] }
+  },
+  'Barang Koleksi': {
+    id: '33333333-3333-3333-3333-333333333333',
+    sub: { 'Mainan': ['Action Figure', 'Mobil-mobilan'], 'Seni': ['Lukisan', 'Patung'] }
+  },
+  'Otomotif': {
+    id: '44444444-4444-4444-4444-444444444444',
+    sub: { 'Mobil': ['Sedan', 'SUV'], 'Motor': ['Sport', 'Matic'] }
+  }
+};
 const PHOTO_SLOTS = [0, 1, 2, 3, 4, 5];
 const DURATIONS = [1, 3, 5, 7, 10, 14];
 
@@ -62,10 +79,10 @@ export default function BuatLelangPage() {
   const fmtField = (v: string) => Number(onlyDigits(v) || '0').toLocaleString('id-ID');
   const endDate = new Date(mountTime + days * 86400000).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   const selectPrimaryCategory = (category: string) => {
-    const sub = Object.keys(CATEGORY_TREE[category])[0];
+    const sub = Object.keys(CATEGORY_TREE[category].sub)[0];
     setCat1(category);
     setCat2(sub);
-    setCat3(CATEGORY_TREE[category][sub][0]);
+    setCat3(CATEGORY_TREE[category].sub[sub][0]);
   };
 
   async function handlePublish() {
@@ -80,12 +97,16 @@ export default function BuatLelangPage() {
       const startAmt = Number(onlyDigits(startPrice));
       const reserveAmt = reserve ? Number(onlyDigits(reserve)) : 0;
       const imageFiles = files.filter((f): f is File => f !== null);
+
+      const categoryId = CATEGORY_TREE[cat1].id;
+
       const listing = await createListing({
         title,
         description: desc,
         startingPrice: startAmt,
         reservePrice: reserveAmt > 0 ? reserveAmt : undefined,
         endTime: endTimeLocal,
+        categoryId: categoryId,
         images: imageFiles.length > 0 ? imageFiles : undefined,
       });
       const auction = await createAuction({

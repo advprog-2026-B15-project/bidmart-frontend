@@ -25,12 +25,11 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
   }
 
   try {
-    const isStream = path.join("/").includes("stream");
     const res = await fetch(target, {
       method: req.method,
       headers,
       body,
-      signal: isStream ? undefined : AbortSignal.timeout(30000),
+      cache: "no-store",
     });
 
     const resHeaders = new Headers();
@@ -47,8 +46,12 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
   } catch (err) {
     console.error(`Proxy error for ${target}:`, err);
     return NextResponse.json(
-      { error: "Internal Server Error", message: err instanceof Error ? err.message : String(err) },
-      { status: 500 }
+      { 
+        error: "Gateway Connection Failed", 
+        message: "Proxy Vercel tidak bisa menghubungi API Gateway.",
+        target: target 
+      },
+      { status: 502 }
     );
   }
 }
