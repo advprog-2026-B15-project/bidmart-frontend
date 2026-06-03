@@ -19,8 +19,14 @@ function TopNavContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [query, setQuery] = useState('');
-  const [selectedCat, setSelectedCat] = useState('all');
+  
+  const urlQ = searchParams.get('q') ?? '';
+  const urlCat = searchParams.get('cat') ?? 'all';
+
+  const [query, setQuery] = useState(urlQ);
+  const [selectedCat, setSelectedCat] = useState(urlCat);
+  const [prevUrl, setPrevUrl] = useState({ q: urlQ, cat: urlCat });
+
   const [userOpen, setUserOpen] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [displayEmail, setDisplayEmail] = useState('');
@@ -29,13 +35,12 @@ function TopNavContent() {
   const [role, setRole] = useState('');
   const userRef = useRef<HTMLDivElement>(null);
 
-  // Sync state with URL only when they differ to avoid cascading renders
-  useEffect(() => {
-    const q = searchParams.get('q') ?? '';
-    const cat = searchParams.get('cat') ?? 'all';
-    if (query !== q) setQuery(q);
-    if (selectedCat !== cat) setSelectedCat(cat);
-  }, [searchParams, query, selectedCat]);
+  // Sync state with URL during render phase (React-recommended pattern for sync)
+  if (urlQ !== prevUrl.q || urlCat !== prevUrl.cat) {
+    setPrevUrl({ q: urlQ, cat: urlCat });
+    setQuery(urlQ);
+    setSelectedCat(urlCat);
+  }
 
   useEffect(() => {
     const load = () => {
