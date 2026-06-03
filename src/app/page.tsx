@@ -52,22 +52,31 @@ function HomePageContent() {
   const [activeCat, setActiveCat] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [inputQuery, setInputQuery] = useState('');
+  
+  // Pagination state
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const pageSize = 8;
 
   useEffect(() => {
     const name = getUsername();
     if (name) setUsername(name.includes('@') ? name.split('@')[0] : name);
     const q = searchParams.get('q') ?? '';
     const cat = searchParams.get('cat') ?? 'all';
+    const p = parseInt(searchParams.get('p') ?? '0', 10);
+    
     setInputQuery(q);
     setSearchQuery(q);
     setActiveCat(cat);
+    setPage(isNaN(p) ? 0 : p);
   }, [searchParams]);
 
   const fetchListings = useCallback(async () => {
     setLoading(true);
     try {
       const data = await getListings({
-        size: 12,
+        page: page,
+        size: pageSize,
         title: searchQuery || undefined,
         categoryId: activeCat !== 'all' ? activeCat : undefined,
         status: 'ACTIVE',
@@ -75,13 +84,16 @@ function HomePageContent() {
       const mapped = data.content
         .map(l => listingToItem(l, activeCat !== 'all' ? activeCat : undefined))
         .sort((a, b) => a.ends - b.ends);
+      
       setItems(mapped);
+      setTotalPages(data.totalPages || 1);
     } catch {
       setItems([]);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
-  }, [activeCat, searchQuery]);
+  }, [activeCat, searchQuery, page]);
 
   useEffect(() => { fetchListings(); }, [fetchListings]);
 
@@ -90,6 +102,13 @@ function HomePageContent() {
     const params = new URLSearchParams();
     if (inputQuery) params.set('q', inputQuery);
     if (activeCat !== 'all') params.set('cat', activeCat);
+    params.set('p', '0'); // Reset to first page on search
+    router.push(`/?${params}`);
+  }
+
+  function goToPage(p: number) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('p', String(p));
     router.push(`/?${params}`);
   }
 
@@ -146,7 +165,7 @@ function HomePageContent() {
             {searchQuery ? `Hasil pencarian "${searchQuery}"` : `Kategori: ${CAT_ID_MAP[activeCat] ?? activeCat}`}
           </h2>
           <button
-            onClick={() => { setInputQuery(''); setActiveCat('all'); router.push('/'); }}
+            onClick={() => { setInputQuery(''); router.push('/'); }}
             style={{ fontSize: 13, color: 'var(--blue-600)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
             ✕ Hapus filter
@@ -157,9 +176,9 @@ function HomePageContent() {
       <section className="bm-section">
         <div className="bm-section-head">
           <div>
-            <h2>{isFiltered ? 'Hasil' : 'Berakhir dalam waktu dekat'}</h2>
+            <h2>{isFiltered ? 'Hasil' : 'Lelang Terbaru'}</h2>
             <p style={{ color: 'var(--ink-3)', fontSize: 13, marginTop: 4 }}>
-              {isFiltered ? `${items.length} listing ditemukan` : 'Lelang dengan timer terbawah — tawar sekarang sebelum kalah.'}
+              {isFiltered ? `${items.length} listing ditemukan` : 'Temukan barang impian kamu di lelang aktif hari ini.'}
             </p>
           </div>
         </div>
@@ -168,7 +187,7 @@ function HomePageContent() {
             ? Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} style={{ height: 260, borderRadius: 12, background: 'var(--surface-2)', animation: 'pulse 1.5s ease-in-out infinite' }}/>
               ))
-            : items.slice(0, 8).map(it => (
+            : items.map(it => (
                 <AuctionCard key={it.id} item={it} onClick={() => goDetail(it)}/>
               ))
           }
@@ -178,9 +197,51 @@ function HomePageContent() {
             </div>
           )}
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 32 }}>
+            <Button 
+              variant="secondary" 
+              size="md" 
+              disabled={page === 0} 
+              onClick={() => goToPage(page - 1)}
+            >
+              Sebelumnya
+            </Button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {Array.from({ length: totalPages }).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => goToPage(i)}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 8,
+                    border: '1px solid ' + (page === i ? 'var(--blue-600)' : 'var(--border)'),
+                    background: page === i ? 'var(--blue-600)' : 'var(--surface)',
+                    color: page === i ? '#fff' : 'var(--ink)',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
+            <Button 
+              variant="secondary" 
+              size="md" 
+              disabled={page >= totalPages - 1} 
+              onClick={() => goToPage(page + 1)}
+            >
+              Selanjutnya
+            </Button>
+          </div>
+        )}
       </section>
 
-      {!isFiltered && items.length > 8 && (
+      {!isFiltered && page === 0 && items.length > 8 && (
         <section className="bm-section">
           <div className="bm-section-head">
             <div>
