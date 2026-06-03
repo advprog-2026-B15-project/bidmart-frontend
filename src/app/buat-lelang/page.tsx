@@ -9,7 +9,12 @@ import { createListing, publishListing } from '@/modules/catalog/api';
 import { createAuction, activateAuction } from '@/modules/auction/api';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 
-const CATEGORY_TREE: Record<string, {id: string, sub: Record<string, string[]>}> = {
+interface CategoryInfo {
+  id: string;
+  sub: Record<string, string[]>;
+}
+
+const CATEGORY_TREE: Record<string, CategoryInfo> = {
   'Elektronik': {
     id: '11111111-1111-1111-1111-111111111111',
     sub: { 'Audio & Video': ['Headphone', 'Speaker'], 'Gadget': ['Smartphone', 'Tablet'] }
@@ -27,6 +32,7 @@ const CATEGORY_TREE: Record<string, {id: string, sub: Record<string, string[]>}>
     sub: { 'Mobil': ['Sedan', 'SUV'], 'Motor': ['Sport', 'Matic'] }
   }
 };
+
 const PHOTO_SLOTS = [0, 1, 2, 3, 4, 5];
 const DURATIONS = [1, 3, 5, 7, 10, 14];
 
@@ -61,6 +67,7 @@ export default function BuatLelangPage() {
     if (startSlot === -1) startSlot = 0;
     selected.forEach((file, i) => storeFile((startSlot + i) % PHOTO_SLOTS.length, file));
   }
+
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
   const [startPrice, setStartPrice] = useState('');
@@ -78,11 +85,16 @@ export default function BuatLelangPage() {
   const onlyDigits = (v: string) => v.replace(/\D/g, '');
   const fmtField = (v: string) => Number(onlyDigits(v) || '0').toLocaleString('id-ID');
   const endDate = new Date(mountTime + days * 86400000).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
   const selectPrimaryCategory = (category: string) => {
-    const sub = Object.keys(CATEGORY_TREE[category].sub)[0];
-    setCat1(category);
-    setCat2(sub);
-    setCat3(CATEGORY_TREE[category].sub[sub][0]);
+    const categoryInfo = CATEGORY_TREE[category];
+    if (categoryInfo) {
+      const subKeys = Object.keys(categoryInfo.sub);
+      const sub = subKeys[0];
+      setCat1(category);
+      setCat2(sub);
+      setCat3(categoryInfo.sub[sub][0]);
+    }
   };
 
   async function handlePublish() {
@@ -98,7 +110,7 @@ export default function BuatLelangPage() {
       const reserveAmt = reserve ? Number(onlyDigits(reserve)) : 0;
       const imageFiles = files.filter((f): f is File => f !== null);
 
-      const categoryId = CATEGORY_TREE[cat1].id;
+      const categoryId = CATEGORY_TREE[cat1]?.id;
 
       const listing = await createListing({
         title,
@@ -132,8 +144,8 @@ export default function BuatLelangPage() {
   }
 
   return (
-      <div className="bm-page-wide">
-        <nav className="bm-bread">
+    <div className="bm-page-wide">
+      <nav className="bm-bread">
         <button type="button" onClick={() => router.push('/')}>Beranda</button>
         <span className="sep">/</span>
         <span className="here">Buat lelang baru</span>
@@ -239,15 +251,21 @@ export default function BuatLelangPage() {
                 ))}
               </div>
               <div className="bm-cat-col">
-                {Object.keys(CATEGORY_TREE[cat1] || {}).map((k: string) => (
+                {Object.keys(CATEGORY_TREE[cat1]?.sub || {}).map((k: string) => (
                   <button type="button" key={k} className={`it ${cat2 === k ? 'active' : ''}`}
-                    onClick={() => { setCat2(k); setCat3(CATEGORY_TREE[cat1][k][0]); }}>
+                    onClick={() => {
+                      const categoryInfo = CATEGORY_TREE[cat1];
+                      setCat2(k);
+                      if (categoryInfo && categoryInfo.sub[k]) {
+                        setCat3(categoryInfo.sub[k][0]);
+                      }
+                    }}>
                     <span>{k}</span><Chevron width={12} height={12}/>
                   </button>
                 ))}
               </div>
               <div className="bm-cat-col">
-                {(CATEGORY_TREE[cat1]?.[cat2] || []).map((k: string) => (
+                {(CATEGORY_TREE[cat1]?.sub[cat2] || []).map((k: string) => (
                   <button type="button" key={k} className={`it ${cat3 === k ? 'active' : ''}`} onClick={() => setCat3(k)}>
                     <span>{k}</span>
                     {cat3 === k && <Check width={14} height={14} style={{ color: 'var(--blue-600)' }}/>}
