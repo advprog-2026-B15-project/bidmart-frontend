@@ -18,7 +18,9 @@ function getInitials(name: string): string {
 export default function TopNav() {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [query, setQuery] = useState('');
+  const [selectedCat, setSelectedCat] = useState('all');
   const [userOpen, setUserOpen] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [displayEmail, setDisplayEmail] = useState('');
@@ -26,6 +28,11 @@ export default function TopNav() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [role, setRole] = useState('');
   const userRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setQuery(searchParams.get('q') ?? '');
+    setSelectedCat(searchParams.get('cat') ?? 'all');
+  }, [searchParams]);
 
   useEffect(() => {
     const load = () => {
@@ -66,6 +73,15 @@ export default function TopNav() {
     router.push('/login');
   }
 
+  function handleSearch(e?: React.FormEvent, catId?: string) {
+    if (e) e.preventDefault();
+    const params = new URLSearchParams();
+    if (query && !catId) params.set('q', query);
+    const category = catId ?? selectedCat;
+    if (category !== 'all') params.set('cat', category);
+    router.push(`/?${params}`);
+  }
+
   return (
     <header className="bm-nav-wrap">
       <div className="bm-nav">
@@ -74,7 +90,7 @@ export default function TopNav() {
         </button>
         <form
           className="bm-search"
-          onSubmit={e => { e.preventDefault(); }}
+          onSubmit={handleSearch}
         >
           <Search width={18} height={18}/>
           <input
@@ -82,12 +98,16 @@ export default function TopNav() {
             value={query}
             onChange={e => setQuery(e.target.value)}
           />
-          <select className="bm-search-cat" defaultValue="All">
-            <option>Semua kategori</option>
-            <option>Elektronik</option>
-            <option>Fashion</option>
-            <option>Otomotif</option>
-            <option>Koleksi</option>
+          <select 
+            className="bm-search-cat" 
+            value={selectedCat}
+            onChange={e => setSelectedCat(e.target.value)}
+          >
+            {CAT_PILLS.map(c => (
+              <option key={c.id} value={c.id}>
+                {c.id === 'all' ? 'Semua kategori' : c.name}
+              </option>
+            ))}
           </select>
           <button type="submit">Cari</button>
         </form>
@@ -171,9 +191,13 @@ export default function TopNav() {
         <div className="bm-catpills">
           {CAT_PILLS.map(c => {
             const IconC = (Icon as Record<string, React.FC<React.SVGProps<SVGSVGElement>>>)[c.icon] || Icon.Tag;
-            const active = pathname === '/' && c.id === 'all';
+            const active = pathname === '/' && selectedCat === c.id;
             return (
-              <button key={c.id} className={`bm-catpill ${active ? 'active' : ''}`}>
+              <button 
+                key={c.id} 
+                className={`bm-catpill ${active ? 'active' : ''}`}
+                onClick={() => handleSearch(undefined, c.id)}
+              >
                 <IconC width={14} height={14}/>{c.name}
               </button>
             );

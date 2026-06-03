@@ -13,20 +13,21 @@ import { CAT_PILLS } from '@/lib/data';
 import Icon from '@/components/icons';
 
 const CAT_ID_MAP: Record<string, string> = {
-  elec: 'Elektronik', fash: 'Fashion', auto: 'Otomotif',
-  coll: 'Koleksi', home: 'Rumah & Taman', sport: 'Olahraga',
-  music: 'Musik', toys: 'Mainan & Hobi', book: 'Buku',
-  art: 'Seni & Antik', watch: 'Jam Tangan',
+  '11111111-1111-1111-1111-111111111111': 'Elektronik',
+  '22222222-2222-2222-2222-222222222222': 'Fashion & Pakaian',
+  '33333333-3333-3333-3333-333333333333': 'Barang Koleksi',
+  '44444444-4444-4444-4444-444444444444': 'Otomotif',
 };
 
 const ART_MAP: Record<string, string> = {
-  elec: 'bm-art-elec', fash: 'bm-art-fash', auto: 'bm-art-veh',
-  coll: 'bm-art-coll', home: 'bm-art-home', music: 'bm-art-music',
-  toys: 'bm-art-toys',
+  '11111111-1111-1111-1111-111111111111': 'bm-art-elec',
+  '22222222-2222-2222-2222-222222222222': 'bm-art-fash',
+  '33333333-3333-3333-3333-333333333333': 'bm-art-coll',
+  '44444444-4444-4444-4444-444444444444': 'bm-art-veh',
 };
 
-function listingToItem(l: Listing, catKey?: string): AuctionItem {
-  const artKey = catKey ?? Object.entries(CAT_ID_MAP).find(([, v]) => v === l.category?.name)?.[0];
+function listingToItem(l: Listing, catId?: string): AuctionItem {
+  const artKey = catId ?? l.category?.id;
   return {
     id: l.id,
     title: l.title,
@@ -35,7 +36,7 @@ function listingToItem(l: Listing, catKey?: string): AuctionItem {
     ends: new Date(l.endTime).getTime(),
     art: ART_MAP[artKey ?? ''] ?? 'bm-art-elec',
     imageUrls: l.imageUrls,
-    cat: l.category?.name ?? 'other',
+    cat: l.category?.name ?? 'Lainnya',
     seller: l.sellerId,
     rating: 4.5,
     ratingCount: 0,
@@ -67,14 +68,13 @@ function HomePageContent() {
   const fetchListings = useCallback(async () => {
     setLoading(true);
     try {
-      const catName = activeCat !== 'all' ? CAT_ID_MAP[activeCat] : undefined;
       const data = await getListings({
         size: 12,
         title: searchQuery || undefined,
+        categoryId: activeCat !== 'all' ? activeCat : undefined,
         status: 'ACTIVE',
       });
       const mapped = data.content
-        .filter(l => !catName || l.category?.name === catName)
         .map(l => listingToItem(l, activeCat !== 'all' ? activeCat : undefined))
         .sort((a, b) => a.ends - b.ends);
       setItems(mapped);

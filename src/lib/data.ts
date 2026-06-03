@@ -26,18 +26,11 @@ export function fmtRpShort(n: number): string {
 // ── Category pills ────────────────────────────────────────────────────────────
 
 export const CAT_PILLS: CategoryPill[] = [
-  { id: 'all',   name: 'Semua',        icon: 'Grid' },
-  { id: 'elec',  name: 'Elektronik',   icon: 'Cpu',      art: 'bm-art-elec' },
-  { id: 'fash',  name: 'Fashion',      icon: 'Shirt',    art: 'bm-art-fash' },
-  { id: 'auto',  name: 'Otomotif',     icon: 'Car',      art: 'bm-art-veh' },
-  { id: 'coll',  name: 'Koleksi',      icon: 'Sparkles', art: 'bm-art-coll' },
-  { id: 'home',  name: 'Rumah & Taman',icon: 'Home',     art: 'bm-art-home' },
-  { id: 'sport', name: 'Olahraga',     icon: 'Trophy' },
-  { id: 'music', name: 'Musik',        icon: 'Music',    art: 'bm-art-music' },
-  { id: 'toys',  name: 'Mainan & Hobi',icon: 'Gamepad',  art: 'bm-art-toys' },
-  { id: 'book',  name: 'Buku',         icon: 'Book' },
-  { id: 'art',   name: 'Seni & Antik', icon: 'Palette' },
-  { id: 'watch', name: 'Jam Tangan',   icon: 'Watch' },
+  { id: 'all',                                  name: 'Semua',            icon: 'Grid' },
+  { id: '11111111-1111-1111-1111-111111111111', name: 'Elektronik',       icon: 'Cpu',      art: 'bm-art-elec' },
+  { id: '22222222-2222-2222-2222-222222222222', name: 'Fashion & Pakaian',icon: 'Shirt',    art: 'bm-art-fash' },
+  { id: '33333333-3333-3333-3333-333333333333', name: 'Barang Koleksi',   icon: 'Sparkles', art: 'bm-art-coll' },
+  { id: '44444444-4444-4444-4444-444444444444', name: 'Otomotif',         icon: 'Car',      art: 'bm-art-veh' },
 ];
 
 // ── Time helpers ──────────────────────────────────────────────────────────────
