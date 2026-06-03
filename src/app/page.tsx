@@ -1,3 +1,4 @@
+```tsx
 'use client';
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -6,16 +7,9 @@ import Button from '@/components/ui/Button';
 import AuctionCard from '@/components/AuctionCard';
 import { fmtRp } from '@/lib/data';
 import { useAuction } from '@/store/auction-context';
-import { getListings, type Listing } from '@/modules/catalog/api';
+import { getListings, getCategories, type Listing, type Category } from '@/modules/catalog/api';
 import { getUsername } from '@/lib/api';
 import type { AuctionItem } from '@/types';
-
-const CAT_ID_MAP: Record<string, string> = {
-  '11111111-1111-1111-1111-111111111111': 'Elektronik',
-  '22222222-2222-2222-2222-222222222222': 'Fashion & Pakaian',
-  '33333333-3333-3333-3333-333333333333': 'Barang Koleksi',
-  '44444444-4444-4444-4444-444444444444': 'Otomotif',
-};
 
 const ART_MAP: Record<string, string> = {
   '11111111-1111-1111-1111-111111111111': 'bm-art-elec',
@@ -47,13 +41,13 @@ function HomePageContent() {
   const { setActiveItem } = useAuction();
 
   const [items, setItems] = useState<AuctionItem[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState<string | null>(null);
   const [activeCat, setActiveCat] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [inputQuery, setInputQuery] = useState('');
   
-  // Pagination state
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const pageSize = 8;
@@ -70,6 +64,12 @@ function HomePageContent() {
     setActiveCat(cat);
     setPage(isNaN(p) ? 0 : p);
   }, [searchParams]);
+
+  useEffect(() => {
+    getCategories()
+      .then(data => setCategories(data))
+      .catch(err => console.error(err));
+  }, []);
 
   const fetchListings = useCallback(async () => {
     setLoading(true);
@@ -102,7 +102,7 @@ function HomePageContent() {
     const params = new URLSearchParams();
     if (inputQuery) params.set('q', inputQuery);
     if (activeCat !== 'all') params.set('cat', activeCat);
-    params.set('p', '0'); // Reset to first page on search
+    params.set('p', '0');
     router.push(`/?${params}`);
   }
 
@@ -118,6 +118,7 @@ function HomePageContent() {
   }
 
   const isFiltered = activeCat !== 'all' || !!searchQuery;
+  const activeCategoryName = categories.find(c => c.id === activeCat)?.name ?? activeCat;
 
   return (
     <div className="bm-page-wide">
@@ -162,7 +163,9 @@ function HomePageContent() {
       {isFiltered && (
         <div style={{ padding: '20px 0 8px', display: 'flex', alignItems: 'center', gap: 12 }}>
           <h2 style={{ fontSize: 20, fontWeight: 700 }}>
-            {searchQuery ? `Hasil pencarian "${searchQuery}"` : `Kategori: ${CAT_ID_MAP[activeCat] ?? activeCat}`}
+            {searchQuery 
+              ? `Hasil pencarian "${searchQuery}"` 
+              : `Kategori: ${activeCat === 'all' ? 'Semua' : activeCategoryName}`}
           </h2>
           <button
             onClick={() => { setInputQuery(''); router.push('/'); }}
@@ -198,7 +201,6 @@ function HomePageContent() {
           )}
         </div>
 
-        {/* Pagination Controls */}
         {totalPages > 1 && (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 32 }}>
             <Button 
@@ -267,3 +269,5 @@ export default function HomePage() {
     </Suspense>
   );
 }
+
+```
