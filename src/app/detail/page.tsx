@@ -16,6 +16,7 @@ import type { AuctionItem, BidEntry } from '@/types';
 interface AuctionRaw {
   id: string;
   title: string;
+  description: string;
   startingPrice: number;
   currentPrice: number;
   minimumIncrement: number;
@@ -37,7 +38,7 @@ function DetailContent() {
   const [loading, setLoading] = useState(true);
   const [bidding, setBidding] = useState(false);
   const [thumb, setThumb] = useState(0);
-  const [tab, setTab] = useState<'history' | 'desc' | 'shipping'>('history');
+  const [tab, setTab] = useState<'history' | 'desc'>('desc');
 
   // Derived from raw auction data
   const startingPrice = auctionRaw?.startingPrice ?? 0;
@@ -68,8 +69,9 @@ function DetailContent() {
   const safe = cd.total > 60 * 60 * 1000;
   const urgent = cd.total < 2 * 60 * 1000 && cd.total > 0;
 
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8082';
   const mainImageUrl = auctionItem?.imageUrls?.[thumb]
-    ? `/api/proxy/uploads/${auctionItem.imageUrls[thumb].split('/').pop()}`
+    ? `${API_BASE}/uploads/${auctionItem.imageUrls[thumb].split('/').pop()}`
     : null;
 
   const refreshBids = useCallback(async () => {
@@ -206,7 +208,7 @@ function DetailContent() {
                 <button key={url} className={`bm-gallery-thumb ${thumb === i ? 'active' : ''}`} onClick={() => setThumb(i)}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img 
-                    src={`http://54.164.111.51:8082/uploads/${url.split('/').pop()}`} 
+                    src={`${API_BASE}/uploads/${url.split('/').pop()}`} 
                     alt={`Thumb ${i}`} 
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                   />
@@ -290,7 +292,7 @@ function DetailContent() {
               <Button
                 variant="primary" size="lg"
                 onClick={() => openModal(it, Number.parseInt(bidVal.replace(/\D/g, ''), 10) || minNext)}
-                style={{ width: '100%' }}
+                style={{ width: '100%', marginBottom: 12 }}
                 disabled={cd.total <= 0 || auctionRaw?.status === 'CLOSED' || auctionRaw?.status === 'WON' || auctionRaw?.status === 'UNSOLD'}
               >
                 {cd.total <= 0 || auctionRaw?.status === 'CLOSED' || auctionRaw?.status === 'WON' || auctionRaw?.status === 'UNSOLD' ? 'Lelang Ditutup' : 'Tawar Sekarang'}
@@ -301,17 +303,6 @@ function DetailContent() {
               <Settings width={14} height={14}/>
               Atur Auto-bid (Proxy Bid)
             </a>
-
-            <div className="bm-bid-divider"/>
-
-            <div className="bm-row" style={{ gap: 8 }}>
-              <button className="bm-bid-watch" style={{ flex: 1 }}>
-                <Heart width={16} height={16}/>Watchlist
-              </button>
-              <button className="bm-bid-watch" style={{ flex: 1 }}>
-                <Shield width={16} height={16}/>Buyer Protection
-              </button>
-            </div>
           </div>
 
           <div className="bm-trust-row">
@@ -323,16 +314,22 @@ function DetailContent() {
       </div>
 
       <div className="bm-detail-tabs">
+        <button className={`bm-detail-tab ${tab === 'desc' ? 'active' : ''}`} onClick={() => setTab('desc')}>Deskripsi Produk</button>
         <button className={`bm-detail-tab ${tab === 'history' ? 'active' : ''}`} onClick={() => setTab('history')}>
           Riwayat Tawaran <span style={{ color: 'var(--ink-3)', marginLeft: 4 }}>({bids.length})</span>
-        </button>
-        <button className={`bm-detail-tab ${tab === 'desc' ? 'active' : ''}`} onClick={() => setTab('desc')}>Deskripsi</button>
-        <button className={`bm-detail-tab ${tab === 'shipping' ? 'active' : ''}`} onClick={() => setTab('shipping')}>
-          Pengiriman &amp; Pembayaran
         </button>
       </div>
 
       <div className="bm-detail-body" style={{ maxWidth: '100%', padding: '24px 0 48px' }}>
+        {tab === 'desc' && (
+          <div style={{ maxWidth: 760, color: 'var(--ink-1)', lineHeight: 1.7, fontSize: 15 }}>
+            {auctionRaw?.description ? (
+              <div style={{ whiteSpace: 'pre-wrap' }}>{auctionRaw.description}</div>
+            ) : (
+              <p style={{ color: 'var(--ink-3)', fontStyle: 'italic' }}>Deskripsi tidak tersedia untuk lelang ini.</p>
+            )}
+          </div>
+        )}
         {tab === 'history' && (
           <div className="bm-table-wrap" style={{ maxWidth: 880 }}>
             {bids.length === 0 ? (
@@ -371,20 +368,6 @@ function DetailContent() {
                 </tbody>
               </table>
             )}
-          </div>
-        )}
-        {tab === 'desc' && (
-          <div style={{ maxWidth: 760, color: 'var(--ink-2)', lineHeight: 1.7 }}>
-            <p>Deskripsi tidak tersedia untuk lelang ini.</p>
-          </div>
-        )}
-        {tab === 'shipping' && (
-          <div style={{ maxWidth: 760 }}>
-            <dl className="bm-spec-table" style={{ gridTemplateColumns: '200px 1fr' }}>
-              <dt>Kurir tersedia</dt>     <dd>JNE Express · J&amp;T · SiCepat · Anteraja</dd>
-              <dt>Estimasi sampai</dt>    <dd>1–3 hari kerja (Jabodetabek) · 2–5 hari (luar Jawa)</dd>
-              <dt>Metode pembayaran</dt>  <dd>BidMart Wallet</dd>
-            </dl>
           </div>
         )}
       </div>
