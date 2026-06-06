@@ -34,6 +34,7 @@ function DetailContent() {
   const id = searchParams.get('id');
 
   const [auctionRaw, setAuctionRaw] = useState<AuctionRaw | null>(null);
+  const [auctionId, setAuctionId] = useState<string | null>(null); // resolved auction ID (may differ from URL id)
   const [listing, setListing] = useState<Listing | null>(null);
   const [bids, setBids] = useState<BidEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,14 +77,14 @@ function DetailContent() {
     : null;
 
   const refreshBids = useCallback(async () => {
-    if (!id) return;
+    if (!auctionId) return;
     try {
-      const fresh = await getAuctionBids(id);
+      const fresh = await getAuctionBids(auctionId);
       setBids(fresh);
     } catch {
       // keep existing bids on error
     }
-  }, [id]);
+  }, [auctionId]);
 
   // Initial data fetch
   useEffect(() => {
@@ -99,12 +100,15 @@ function DetailContent() {
         try {
           raw = await getAuctionRaw(id!);
         } catch {
+          // Fallback: resolve auction by listing ID
           const byListing = await getAuctionByListingId(id!).catch(() => null);
-          if (!byListing) throw new Error('Auction not found');
+          if (!byListing) throw new Error('Auction not found for this listing');
           raw = byListing;
         }
 
         const r = raw as unknown as AuctionRaw;
+        // Store the REAL auction ID — used for SSE, bids, and all subsequent calls
+        setAuctionId(r.id);
         const bidList = await getAuctionBids(r.id);
         setAuctionRaw(r);
         setBids(bidList);
@@ -128,15 +132,16 @@ function DetailContent() {
   }, [id, router]);
 
   // SSE — real-time price and bid updates with auto-reconnect
+  // Wait until auctionId is resolved (may differ from URL id when navigating via listing)
   useEffect(() => {
-    if (!id) return;
+    if (!auctionId) return;
     let es: EventSource;
     let timer: ReturnType<typeof setTimeout>;
     let closed = false;
 
     function connect() {
-      if (closed || !id) return;
-      es = new EventSource(getAuctionStreamUrl(id));
+      if (closed || !auctionId) return;
+      es = new EventSource(getAuctionStreamUrl(auctionId));
       const handleUpdate = (raw: string) => {
         try {
           const data = JSON.parse(raw) as { currentPrice?: number; endTime?: string; status?: string };
@@ -168,7 +173,7 @@ function DetailContent() {
       clearTimeout(timer);
       es?.close();
     };
-  }, [id, refreshBids]);
+  }, [auctionId, refreshBids]);
 
   // Bid confirm handler
   async function handleBidConfirm() {

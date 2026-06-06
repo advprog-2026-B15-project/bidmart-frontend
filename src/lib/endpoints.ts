@@ -51,6 +51,7 @@ export const API = {
     // Public
     list:            `${BASE}/api/auctions`,
     byId:            (id: string) => `${BASE}/api/auctions/${id}`,
+    byListingId:     (listingId: string) => `${BASE}/api/auctions/by-listing/${listingId}`,
     bids:            (id: string) => `${BASE}/api/auctions/${id}/bids`,
     // SSE stream, use with EventSource
     stream:          (id: string) => `${BASE}/api/auctions/${id}/stream`,
