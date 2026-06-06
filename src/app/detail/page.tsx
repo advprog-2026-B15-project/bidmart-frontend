@@ -68,8 +68,10 @@ function DetailContent() {
 
   const ends = auctionItem?.ends ?? Date.now() + 86400000;
   const cd = useCountdown(ends);
-  const safe = cd.total > 60 * 60 * 1000;
-  const urgent = cd.total < 2 * 60 * 1000 && cd.total > 0;
+  const isClosedStatus = ['CLOSED', 'WON', 'UNSOLD'].includes(auctionRaw?.status ?? '');
+  const isAuctionEnded = cd.total <= 0 || isClosedStatus;
+  const safe = !isAuctionEnded && cd.total > 60 * 60 * 1000;
+  const urgent = !isAuctionEnded && cd.total < 2 * 60 * 1000;
 
   const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8082';
   const mainImageUrl = auctionItem?.imageUrls?.[thumb]
@@ -242,9 +244,9 @@ function DetailContent() {
                 <div className={`bm-gallery-main-art ${it.art}`} style={{ position: 'absolute' }}/>
               </>
             )}
-            <span className="bm-listing-badge bm-listing-badge-red"
-              style={{ top: 16, left: 16, fontSize: 11, padding: '5px 10px' }}>
-              LIVE · {cd.total > 0 ? <CompactCountdown end={it.ends}/> : 'Berakhir'}
+            <span className={`bm-listing-badge ${isAuctionEnded ? 'bm-listing-badge-gray' : 'bm-listing-badge-red'}`}
+              style={{ top: 16, left: 16, fontSize: 11, padding: '5px 10px', background: isAuctionEnded ? 'var(--ink-2)' : undefined, color: isAuctionEnded ? '#fff' : undefined }}>
+              {isAuctionEnded ? 'BERAKHIR' : <>LIVE &middot; <CompactCountdown end={it.ends}/></>}
             </span>
           </div>
           {it.imageUrls && it.imageUrls.length > 0 && (
@@ -298,12 +300,12 @@ function DetailContent() {
             <div className="bm-bid-divider"/>
 
             <div className="bm-bid-row-base">
-              <span className="bm-bid-lbl">Sisa waktu</span>
+              <span className="bm-bid-lbl">{isAuctionEnded ? 'Status waktu' : 'Sisa waktu'}</span>
               <span className="bm-bid-sub" style={{
-                color: safe ? 'var(--green-700)' : urgent ? 'var(--red-600)' : 'var(--ink-2)',
+                color: isAuctionEnded ? 'var(--ink-3)' : safe ? 'var(--green-700)' : urgent ? 'var(--red-600)' : 'var(--ink-2)',
                 fontWeight: 600,
               }}>
-                {safe ? 'Masih lama' : urgent ? 'Hampir berakhir!' : 'Akan berakhir'}
+                {isAuctionEnded ? 'Lelang telah berakhir' : safe ? 'Masih lama' : urgent ? 'Hampir berakhir!' : 'Akan berakhir'}
               </span>
             </div>
             <BlocksCountdown end={it.ends}/>
@@ -349,9 +351,11 @@ function DetailContent() {
                   variant="primary" size="lg"
                   onClick={() => openModal(it, Number.parseInt(bidVal.replace(/\D/g, ''), 10) || minNext)}
                   style={{ width: '100%', marginBottom: 12, marginTop: 16 }}
-                  disabled={cd.total <= 0 || auctionRaw?.status === 'CLOSED' || auctionRaw?.status === 'WON' || auctionRaw?.status === 'UNSOLD'}
+                  disabled={isAuctionEnded}
                 >
-                  {cd.total <= 0 || auctionRaw?.status === 'CLOSED' || auctionRaw?.status === 'WON' || auctionRaw?.status === 'UNSOLD' ? 'Lelang Ditutup' : 'Tawar Sekarang'}
+                  {isAuctionEnded 
+                    ? (auctionRaw?.status === 'WON' ? 'Lelang Selesai (Ada Pemenang)' : auctionRaw?.status === 'UNSOLD' ? 'Lelang Berakhir (Tidak Terjual)' : 'Lelang Ditutup') 
+                    : 'Tawar Sekarang'}
                 </Button>
 
                 <a href="#auto-bid" style={{ fontSize: 13, color: 'var(--blue-600)', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
