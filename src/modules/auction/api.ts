@@ -145,8 +145,7 @@ export async function getAuctionRaw(id: string): Promise<AuctionResponse> {
 
 // Lookup active auction by catalog listing ID
 export async function getAuctionByListingId(listingId: string): Promise<AuctionResponse | null> {
-  const res = await apiFetch<{ content: AuctionResponse[] }>(`${API.auction.list}?listingId=${listingId}&status=ACTIVE&size=1`);
-  return res.content?.[0] ?? null;
+  return apiFetch<AuctionResponse>(API.auction.byListingId(listingId)).catch(() => null);
 }
 
 export async function getMyActiveBidAuctions(): Promise<MyBidAuction[]> {
