@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import Switch from '@/components/ui/Switch';
@@ -88,11 +88,24 @@ export default function BuatLelangPage() {
   const [cat3, setCat3] = useState('Headphone');
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [previewBaseTime, setPreviewBaseTime] = useState(() => Date.now());
 
-  const [mountTime] = useState<number>(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setPreviewBaseTime(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const onlyDigits = (v: string) => v.replace(/\D/g, '');
   const fmtField = (v: string) => Number(onlyDigits(v) || '0').toLocaleString('id-ID');
-  const endDate = new Date(mountTime + durationMs).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const endDate = new Date(previewBaseTime + durationMs).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  function buildEndTimes() {
+    const endTimeIso = new Date(Date.now() + durationMs).toISOString();
+    return {
+      local: endTimeIso.replace('Z', ''),
+      offset: endTimeIso.replace('Z', '+00:00'),
+    };
+  }
 
   const selectPrimaryCategory = (category: string) => {
     const categoryInfo = CATEGORY_TREE[category];
@@ -110,8 +123,7 @@ export default function BuatLelangPage() {
     setSubmitting(true);
     setErrorMsg('');
     try {
-      const endTimeIso = new Date(mountTime + durationMs).toISOString();
-      const endTimeLocal = endTimeIso.replace('Z', '');
+      const { local: endTimeLocal } = buildEndTimes();
       const startAmt = Number(onlyDigits(startPrice)) || 0;
       const reserveAmt = reserve ? Number(onlyDigits(reserve)) : 0;
       const imageFiles = files.filter((f): f is File => f !== null);
@@ -142,9 +154,7 @@ export default function BuatLelangPage() {
     setSubmitting(true);
     setErrorMsg('');
     try {
-      const endTimeIso = new Date(mountTime + durationMs).toISOString();
-      const endTimeLocal = endTimeIso.replace('Z', ''); // catalog (LocalDateTime)
-      const endTimeOffset = endTimeIso.replace('.000Z', '+00:00'); // auction (OffsetDateTime)
+      const { local: endTimeLocal, offset: endTimeOffset } = buildEndTimes();
       const startAmt = Number(onlyDigits(startPrice));
       const reserveAmt = reserve ? Number(onlyDigits(reserve)) : 0;
       const imageFiles = files.filter((f): f is File => f !== null);
