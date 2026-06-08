@@ -10,6 +10,7 @@ import {
   getBookingDetail,
   updateShipment,
   confirmDelivery,
+  completeOrder,
   fileDispute,
 } from '@/modules/booking/api';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
@@ -20,7 +21,8 @@ function statusLabel(s: string) {
     unpaid: { lbl: 'Menunggu Pembayaran', cls: 'bm-status-wait' },
     wait:   { lbl: 'Menunggu Pengiriman', cls: 'bm-status-wait' },
     ship:   { lbl: 'Dikirim',             cls: 'bm-status-ship' },
-    recv:   { lbl: 'Diterima',            cls: 'bm-status-recv' },
+    recv:   { lbl: 'Dikonfirmasi',        cls: 'bm-status-recv' },
+    done:   { lbl: 'Selesai',             cls: 'bm-status-recv' },
     disp:   { lbl: 'Sengketa',            cls: 'bm-status-disp' },
   }[s] || { lbl: s, cls: 'bm-status-done' };
 }
@@ -62,9 +64,9 @@ function OrderDetail({
   const steps = [
     { key: 0, lbl: 'Won',       when: order.when?.replace('Dibuat ', '') },
     { key: 1, lbl: 'Packaging', when: order.status === 'wait' ? 'Menunggu' : '-' },
-    { key: 2, lbl: 'Shipped',   when: ['ship', 'recv'].includes(order.status) ? order.tracking?.lastUpd ?? '-' : '—' },
-    { key: 3, lbl: 'Delivered', when: order.status === 'recv' ? '-' : order.status === 'disp' ? 'Belum tiba' : '—' },
-    { key: 4, lbl: 'Confirmed', when: order.status === 'recv' ? '-' : '—' },
+    { key: 2, lbl: 'Shipped',   when: ['ship', 'recv', 'done'].includes(order.status) ? order.tracking?.lastUpd ?? '-' : '—' },
+    { key: 3, lbl: 'Delivered', when: ['recv', 'done'].includes(order.status) ? '-' : order.status === 'disp' ? 'Belum tiba' : '—' },
+    { key: 4, lbl: 'Confirmed', when: order.status === 'done' ? '-' : '—' },
   ];
 
   return (
@@ -187,17 +189,19 @@ function OrderDetail({
 
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', paddingTop: 4 }}>
         {role === 'buyer' && order.status === 'ship' && (
+          <Button variant="primary" size="md" leftIcon={<Check width={16} height={16}/>} onClick={() => onAction('confirm')}>
+            Konfirmasi Barang Diterima
+          </Button>
+        )}
+        {role === 'buyer' && order.status === 'recv' && (
           <>
             <Button variant="ghost" size="md" onClick={() => onAction('dispute')}>Buka sengketa</Button>
-            <Button variant="primary" size="md" leftIcon={<Check width={16} height={16}/>} onClick={() => onAction('confirm')}>
-              Konfirmasi Barang Diterima
+            <Button variant="primary" size="md" leftIcon={<Check width={16} height={16}/>} onClick={() => onAction('complete')}>
+              Pesanan Selesai
             </Button>
           </>
         )}
-        {role === 'buyer' && order.status === 'recv' && (
-          <Button variant="ghost" size="md" onClick={() => onAction('dispute')}>Buka sengketa</Button>
-        )}
-        {role === 'buyer' && order.status === 'recv' && (
+        {role === 'buyer' && order.status === 'done' && (
           <Button variant="primary" size="md" leftIcon={<Star width={16} height={16}/>}>Beri ulasan</Button>
         )}
       </div>
@@ -249,6 +253,8 @@ export default function PesananPage() {
         setTrackingNum('');
       } else if (action === 'confirm') {
         await confirmDelivery(openOrder.id);
+      } else if (action === 'complete') {
+        await completeOrder(openOrder.id);
       } else if (action === 'dispute') {
         const reason = window.prompt('Alasan sengketa:');
         if (!reason) return;
@@ -261,15 +267,15 @@ export default function PesananPage() {
   }
 
   const filtered = orders.filter(o => {
-    if (tab === 'active') return ['unpaid', 'wait', 'ship'].includes(o.status);
-    if (tab === 'completed') return o.status === 'recv';
+    if (tab === 'active') return ['unpaid', 'wait', 'ship', 'recv'].includes(o.status);
+    if (tab === 'completed') return o.status === 'done';
     if (tab === 'disputes') return o.status === 'disp';
     return true;
   });
 
   const counts = {
-    active:    orders.filter(o => ['unpaid', 'wait', 'ship'].includes(o.status)).length,
-    completed: orders.filter(o => o.status === 'recv').length,
+    active:    orders.filter(o => ['unpaid', 'wait', 'ship', 'recv'].includes(o.status)).length,
+    completed: orders.filter(o => o.status === 'done').length,
     disputes:  orders.filter(o => o.status === 'disp').length,
   };
 

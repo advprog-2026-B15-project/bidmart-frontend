@@ -51,7 +51,8 @@ const STATUS_MAP: Record<string, string> = {
   CREATED: 'unpaid',
   PAID: 'wait',
   SHIPPED: 'ship',
-  DELIVERED: 'recv', COMPLETED: 'recv',
+  DELIVERED: 'recv',
+  COMPLETED: 'done',
   DISPUTED: 'disp',
 };
 
@@ -60,7 +61,8 @@ const STEP_MAP: Record<string, number> = {
   PAID: 1,
   SHIPPED: 2,
   DISPUTED: 3,
-  DELIVERED: 4, COMPLETED: 4,
+  DELIVERED: 3,
+  COMPLETED: 4,
 };
 
 const NOTIF_TYPE_MAP: Record<string, string> = {
@@ -166,6 +168,14 @@ export async function updateShipment(
 export async function confirmDelivery(id: string): Promise<void> {
   const numericId = id.replace('BM-', '');
   await apiFetch(`/api/bookings/${numericId}/confirm-delivery`, {
+    method: 'PATCH',
+    headers: { 'X-User-Role': 'BUYER' },
+  });
+}
+
+export async function completeOrder(id: string): Promise<void> {
+  const numericId = id.replace('BM-', '');
+  await apiFetch(`/api/bookings/${numericId}/complete`, {
     method: 'PATCH',
     headers: { 'X-User-Role': 'BUYER' },
   });
