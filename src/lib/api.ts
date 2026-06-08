@@ -64,7 +64,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   const role = getCurrentRole();
 
   const headers: Record<string, string> = {
-    ...(options.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+    ...(options.body === undefined ? {} : { 'Content-Type': 'application/json' }),
     ...(options.headers as Record<string, string> ?? {}),
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
