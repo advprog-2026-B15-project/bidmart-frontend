@@ -5,8 +5,9 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Switch from '@/components/ui/Switch';
 import { Check, Gavel, AlertTri, Trophy, Clock, Box, Info } from '@/components/icons';
-import { getMyNotifications, markNotificationRead, getNotificationPreferences, updateNotificationPreferences } from '@/modules/booking/api';
+import { markNotificationRead, getNotificationPreferences, updateNotificationPreferences } from '@/modules/booking/api';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { useRealtimeNotifications } from '@/store/notification-context';
 import type { Notification } from '@/types';
 
 function iconFor(t: string) {
@@ -25,91 +26,38 @@ export default function NotifikasiPage() {
   const [tab, setTab] = useState<'all' | 'bids' | 'auctions' | 'orders'>('all');
   const [emailOn, setEmailOn] = useState(false);
   const [inAppOn, setInAppOn] = useState(true);
-  const [list, setList] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    notifications: list,
+    unreadCount: unreadCt,
+    loading,
+    markNotificationReadLocally,
+    markAllNotificationsReadLocally,
+  } = useRealtimeNotifications();
 
   useEffect(() => {
     async function load() {
       try {
-        const [notifs, prefs] = await Promise.all([
-          getMyNotifications(),
-          getNotificationPreferences().catch(() => null),
-        ]);
-        setList(notifs);
+        const prefs = await getNotificationPreferences().catch(() => null);
         if (prefs) {
           setEmailOn(prefs.emailEnabled ?? false);
           setInAppOn(prefs.inAppEnabled ?? true);
         }
-      } catch {
-        setList([]);
-      } finally {
-        setLoading(false);
-      }
+      } catch {}
     }
     load();
-  }, []);
-
-  // SSE — real-time notifications
-  useEffect(() => {
-    let es: EventSource;
-    let timer: ReturnType<typeof setTimeout>;
-    let closed = false;
-
-    function connect() {
-      if (closed) return;
-      es = new EventSource('/api/proxy/notifications/stream');
-      es.addEventListener('notification', (e: MessageEvent) => {
-        try {
-          const raw = JSON.parse(e.data as string) as {
-            id: number; type: string; title: string; message: string;
-            isRead: boolean; readAt: string | null; createdAt: string;
-            relatedAuctionId: string | null; relatedBookingId: number | null;
-          };
-          const NOTIF_TYPE_MAP: Record<string, string> = {
-            WIN: 'won', LOSE: 'out',
-            NEW_BID: 'bid', OUTBID: 'out',
-            PAYMENT_CONFIRMED: 'order', BALANCE_RELEASED: 'order',
-            SHIPPED: 'order', DELIVERED: 'order',
-            DISPUTE_FILED: 'order', INFO: 'order',
-          };
-          const notif = {
-            id: String(raw.id),
-            type: NOTIF_TYPE_MAP[raw.type] ?? 'order',
-            unread: !raw.isRead,
-            title: raw.title,
-            desc: raw.message,
-            when: 'Baru saja',
-          };
-          setList(prev => [notif, ...prev.filter(n => n.id !== notif.id)]);
-        } catch {
-          // ignore malformed frames
-        }
-      });
-      es.onerror = () => {
-        es.close();
-        if (!closed) timer = setTimeout(connect, 5000);
-      };
-    }
-
-    connect();
-    return () => {
-      closed = true;
-      clearTimeout(timer);
-      es?.close();
-    };
   }, []);
 
   async function markAllRead() {
     const unread = list.filter(n => n.unread);
     await Promise.allSettled(unread.map(n => markNotificationRead(n.id)));
-    setList(prev => prev.map(n => ({ ...n, unread: false })));
+    markAllNotificationsReadLocally();
   }
 
   async function toggleRead(id: string) {
     const notif = list.find(n => n.id === id);
     if (!notif?.unread) return;
     await markNotificationRead(id).catch(() => {});
-    setList(prev => prev.map(n => n.id === id ? { ...n, unread: false } : n));
+    markNotificationReadLocally(id);
   }
 
   async function handlePrefChange(field: 'email' | 'inApp', val: boolean) {
@@ -135,7 +83,6 @@ export default function NotifikasiPage() {
     auctions: list.filter(filterMap.auctions).length,
     orders:   list.filter(filterMap.orders).length,
   };
-  const unreadCt = list.filter(n => n.unread).length;
 
   return (
     <div className="bm-page-wide">

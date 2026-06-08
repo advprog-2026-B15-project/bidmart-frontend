@@ -76,11 +76,10 @@ function HomePageContent() {
       const data = await getListings({
         page: page,
         size: pageSize,
-        title: searchQuery || undefined,
-        categoryId: activeCat !== 'all' ? activeCat : undefined,
         status: 'ACTIVE',
         sortBy: sortBy,
         direction: direction,
+        title: searchQuery || undefined,
       });
       const mapped = data.content
           .map(l => listingToItem(l, activeCat !== 'all' ? activeCat : undefined));

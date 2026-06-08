@@ -8,7 +8,7 @@ import { BlocksCountdown, CompactCountdown, useCountdown } from '@/components/Co
 import { Heart, Shield, Truck, Refresh, Lock, Settings } from '@/components/icons';
 import { fmtRp } from '@/lib/data';
 import { useAuction } from '@/store/auction-context';
-import { getAuctionRaw, getAuctionBids, getAuctionStreamUrl, placeBid } from '@/modules/auction/api';
+import { getAuctionRaw, getAuctionByListingId, getAuctionBids, getAuctionStreamUrl, placeBid } from '@/modules/auction/api';
 import { getListing, deleteListing, type Listing } from '@/modules/catalog/api';
 import { getCurrentUserId } from '@/lib/api';
 import type { AuctionItem, BidEntry } from '@/types';
@@ -34,6 +34,7 @@ function DetailContent() {
   const id = searchParams.get('id');
 
   const [auctionRaw, setAuctionRaw] = useState<AuctionRaw | null>(null);
+  const [auctionId, setAuctionId] = useState<string | null>(null); // resolved auction ID (may differ from URL id)
   const [listing, setListing] = useState<Listing | null>(null);
   const [bids, setBids] = useState<BidEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,8 +68,10 @@ function DetailContent() {
 
   const ends = auctionItem?.ends ?? Date.now() + 86400000;
   const cd = useCountdown(ends);
-  const safe = cd.total > 60 * 60 * 1000;
-  const urgent = cd.total < 2 * 60 * 1000 && cd.total > 0;
+  const isClosedStatus = ['CLOSED', 'WON', 'UNSOLD'].includes(auctionRaw?.status ?? '');
+  const isAuctionEnded = cd.total <= 0 || isClosedStatus;
+  const safe = !isAuctionEnded && cd.total > 60 * 60 * 1000;
+  const urgent = !isAuctionEnded && cd.total < 2 * 60 * 1000;
 
   const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8082';
   const mainImageUrl = auctionItem?.imageUrls?.[thumb]
@@ -76,14 +79,14 @@ function DetailContent() {
     : null;
 
   const refreshBids = useCallback(async () => {
-    if (!id) return;
+    if (!auctionId) return;
     try {
-      const fresh = await getAuctionBids(id);
+      const fresh = await getAuctionBids(auctionId);
       setBids(fresh);
     } catch {
       // keep existing bids on error
     }
-  }, [id]);
+  }, [auctionId]);
 
   // Initial data fetch
   useEffect(() => {
@@ -94,15 +97,24 @@ function DetailContent() {
     
     async function init() {
       try {
-        const [raw, bidList] = await Promise.all([
-          getAuctionRaw(id!),
-          getAuctionBids(id!)
-        ]);
-        
+        // id from URL may be auction ID or catalog listing ID — try both
+        let raw;
+        try {
+          raw = await getAuctionRaw(id!);
+        } catch {
+          // Fallback: resolve auction by listing ID
+          const byListing = await getAuctionByListingId(id!).catch(() => null);
+          if (!byListing) throw new Error('Auction not found for this listing');
+          raw = byListing;
+        }
+
         const r = raw as unknown as AuctionRaw;
+        // Store the REAL auction ID — used for SSE, bids, and all subsequent calls
+        setAuctionId(r.id);
+        const bidList = await getAuctionBids(r.id);
         setAuctionRaw(r);
         setBids(bidList);
-        
+
         const base = r.currentPrice > 0 ? r.currentPrice : r.startingPrice;
         setBidVal(String(base + r.minimumIncrement));
 
@@ -122,18 +134,19 @@ function DetailContent() {
   }, [id, router]);
 
   // SSE — real-time price and bid updates with auto-reconnect
+  // Wait until auctionId is resolved (may differ from URL id when navigating via listing)
   useEffect(() => {
-    if (!id) return;
+    if (!auctionId) return;
     let es: EventSource;
     let timer: ReturnType<typeof setTimeout>;
     let closed = false;
 
     function connect() {
-      if (closed || !id) return;
-      es = new EventSource(getAuctionStreamUrl(id));
-      es.onmessage = (e) => {
+      if (closed || !auctionId) return;
+      es = new EventSource(getAuctionStreamUrl(auctionId));
+      const handleUpdate = (raw: string) => {
         try {
-          const data = JSON.parse(e.data as string) as { currentPrice?: number; endTime?: string; status?: string };
+          const data = JSON.parse(raw) as { currentPrice?: number; endTime?: string; status?: string };
           setAuctionRaw(prev => {
             if (!prev) return prev;
             return {
@@ -148,6 +161,8 @@ function DetailContent() {
           // ignore malformed SSE frames
         }
       };
+      es.addEventListener('BID_UPDATE', e => handleUpdate((e as MessageEvent).data as string));
+      es.addEventListener('message', e => handleUpdate((e as MessageEvent).data as string));
       es.onerror = () => {
         es.close();
         if (!closed) timer = setTimeout(connect, 3000);
@@ -160,7 +175,7 @@ function DetailContent() {
       clearTimeout(timer);
       es?.close();
     };
-  }, [id, refreshBids]);
+  }, [auctionId, refreshBids]);
 
   // Bid confirm handler
   async function handleBidConfirm() {
@@ -229,9 +244,9 @@ function DetailContent() {
                 <div className={`bm-gallery-main-art ${it.art}`} style={{ position: 'absolute' }}/>
               </>
             )}
-            <span className="bm-listing-badge bm-listing-badge-red"
-              style={{ top: 16, left: 16, fontSize: 11, padding: '5px 10px' }}>
-              LIVE · {cd.total > 0 ? <CompactCountdown end={it.ends}/> : 'Berakhir'}
+            <span className={`bm-listing-badge ${isAuctionEnded ? 'bm-listing-badge-gray' : 'bm-listing-badge-red'}`}
+              style={{ top: 16, left: 16, fontSize: 11, padding: '5px 10px', background: isAuctionEnded ? 'var(--ink-2)' : undefined, color: isAuctionEnded ? '#fff' : undefined }}>
+              {isAuctionEnded ? 'BERAKHIR' : <>LIVE &middot; <CompactCountdown end={it.ends}/></>}
             </span>
           </div>
           {it.imageUrls && it.imageUrls.length > 0 && (
@@ -285,12 +300,12 @@ function DetailContent() {
             <div className="bm-bid-divider"/>
 
             <div className="bm-bid-row-base">
-              <span className="bm-bid-lbl">Sisa waktu</span>
+              <span className="bm-bid-lbl">{isAuctionEnded ? 'Status waktu' : 'Sisa waktu'}</span>
               <span className="bm-bid-sub" style={{
-                color: safe ? 'var(--green-700)' : urgent ? 'var(--red-600)' : 'var(--ink-2)',
+                color: isAuctionEnded ? 'var(--ink-3)' : safe ? 'var(--green-700)' : urgent ? 'var(--red-600)' : 'var(--ink-2)',
                 fontWeight: 600,
               }}>
-                {safe ? 'Masih lama' : urgent ? 'Hampir berakhir!' : 'Akan berakhir'}
+                {isAuctionEnded ? 'Lelang telah berakhir' : safe ? 'Masih lama' : urgent ? 'Hampir berakhir!' : 'Akan berakhir'}
               </span>
             </div>
             <BlocksCountdown end={it.ends}/>
@@ -336,9 +351,11 @@ function DetailContent() {
                   variant="primary" size="lg"
                   onClick={() => openModal(it, Number.parseInt(bidVal.replace(/\D/g, ''), 10) || minNext)}
                   style={{ width: '100%', marginBottom: 12, marginTop: 16 }}
-                  disabled={cd.total <= 0 || auctionRaw?.status === 'CLOSED' || auctionRaw?.status === 'WON' || auctionRaw?.status === 'UNSOLD'}
+                  disabled={isAuctionEnded}
                 >
-                  {cd.total <= 0 || auctionRaw?.status === 'CLOSED' || auctionRaw?.status === 'WON' || auctionRaw?.status === 'UNSOLD' ? 'Lelang Ditutup' : 'Tawar Sekarang'}
+                  {isAuctionEnded 
+                    ? (auctionRaw?.status === 'WON' ? 'Lelang Selesai (Ada Pemenang)' : auctionRaw?.status === 'UNSOLD' ? 'Lelang Berakhir (Tidak Terjual)' : 'Lelang Ditutup') 
+                    : 'Tawar Sekarang'}
                 </Button>
 
                 <a href="#auto-bid" style={{ fontSize: 13, color: 'var(--blue-600)', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>

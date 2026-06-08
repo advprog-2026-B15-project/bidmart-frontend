@@ -9,6 +9,7 @@ const SCREENS: [string, string][] = [
   ['/login', 'Sign In / Register'],
   ['/buat-lelang', 'Buat Lelang'],
   ['/pesanan', 'Pesanan'],
+  ['/sedang-menawar', 'Sedang Menawar'],
   ['/notifikasi', 'Notifikasi'],
   ['/admin', 'Admin Dashboard'],
 ];
