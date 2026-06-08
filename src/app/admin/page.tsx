@@ -189,7 +189,7 @@ export default function AdminPage() {
                       <div className="case">{d.title}<span className="id">#{d.id}</span></div>
                       <div className="who">
                         {d.buyer} <ArrowRight width={11} height={11} style={{ display: 'inline', verticalAlign: 'middle', color: 'var(--ink-4)', margin: '0 4px' }}/> {d.seller}
-                        <span style={{ margin: '0 8px', color: 'var(--ink-4)' }}>·</span>
+                        <span style={{ margin: '0 8px', color: 'var(--ink-4)' }}>·</span>{' '}
                         Nilai <b style={{ color: 'var(--ink)' }}>{fmtRp(d.amount)}</b>
                       </div>
                       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 6 }}>
