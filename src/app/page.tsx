@@ -189,49 +189,6 @@ function HomePageContent() {
             </div>
         )}
 
-        {/* Satu-satunya Bar Filter Kategori yang Dipertahankan (Selalu Aktif & Terlihat) */}
-        <div style={{ display: 'flex', gap: 8, margin: '16px 0 24px', flexWrap: 'wrap' }}>
-          <button
-              type="button"
-              className={`bm-catpill ${activeCat === 'all' ? 'active' : ''}`}
-              onClick={() => {
-                const params = new URLSearchParams(searchParams.toString());
-                params.delete('cat');
-                params.set('p', '0');
-                router.push(`/?${params.toString()}`);
-              }}
-              style={{
-                padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
-                fontSize: 14, fontWeight: 500,
-                backgroundColor: activeCat === 'all' ? 'var(--blue-600)' : 'var(--surface-2)',
-                color: activeCat === 'all' ? '#fff' : 'var(--ink)'
-              }}
-          >
-            Semua
-          </button>
-          {categories.map(c => (
-              <button
-                  key={c.id}
-                  type="button"
-                  className={`bm-catpill ${activeCat === c.id ? 'active' : ''}`}
-                  onClick={() => {
-                    const params = new URLSearchParams(searchParams.toString());
-                    params.set('cat', c.id);
-                    params.set('p', '0');
-                    router.push(`/?${params.toString()}`);
-                  }}
-                  style={{
-                    padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
-                    fontSize: 14, fontWeight: 500,
-                    backgroundColor: activeCat === c.id ? 'var(--blue-600)' : 'var(--surface-2)',
-                    color: activeCat === c.id ? '#fff' : 'var(--ink)'
-                  }}
-              >
-                {c.name}
-              </button>
-          ))}
-        </div>
-
         <section className="bm-section">
           <div className="bm-section-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
