@@ -48,17 +48,19 @@ interface NotificationPreference {
 // ── Mappers ───────────────────────────────────────────────────────────────────
 
 const STATUS_MAP: Record<string, string> = {
-  CREATED: 'wait', WAITING_PAYMENT: 'wait', PENDING: 'wait', PAID: 'wait', CONFIRMED: 'wait',
+  CREATED: 'unpaid',
+  PAID: 'wait',
   SHIPPED: 'ship',
-  DELIVERED: 'recv', COMPLETED: 'recv', RESOLVED: 'recv',
+  DELIVERED: 'recv', COMPLETED: 'recv',
   DISPUTED: 'disp',
 };
 
 const STEP_MAP: Record<string, number> = {
-  CREATED: 0, WAITING_PAYMENT: 1, PENDING: 1, PAID: 1, CONFIRMED: 1,
+  CREATED: 0,
+  PAID: 1,
   SHIPPED: 2,
   DISPUTED: 3,
-  DELIVERED: 4, COMPLETED: 4, RESOLVED: 4,
+  DELIVERED: 4, COMPLETED: 4,
 };
 
 const NOTIF_TYPE_MAP: Record<string, string> = {
@@ -138,6 +140,14 @@ export async function getBookingDetail(id: string, role: 'buyer' | 'seller'): Pr
   const numericId = id.replace('BM-', '');
   const detail = await apiFetch<BookingDetail>(`/api/bookings/${numericId}`);
   return mapBookingDetail(detail, role);
+}
+
+export async function payBooking(id: string): Promise<void> {
+  const numericId = id.replace('BM-', '');
+  await apiFetch(`/api/bookings/${numericId}/pay`, {
+    method: 'PATCH',
+    headers: { 'X-User-Role': 'BUYER' },
+  });
 }
 
 export async function updateShipment(

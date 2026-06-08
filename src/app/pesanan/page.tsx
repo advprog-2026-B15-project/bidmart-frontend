@@ -17,10 +17,11 @@ import type { Order, TrackingEvent } from '@/types';
 
 function statusLabel(s: string) {
   return {
-    wait: { lbl: 'Menunggu Pengiriman', cls: 'bm-status-wait' },
-    ship: { lbl: 'Dikirim',             cls: 'bm-status-ship' },
-    recv: { lbl: 'Diterima',            cls: 'bm-status-recv' },
-    disp: { lbl: 'Sengketa',            cls: 'bm-status-disp' },
+    unpaid: { lbl: 'Menunggu Pembayaran', cls: 'bm-status-wait' },
+    wait:   { lbl: 'Menunggu Pengiriman', cls: 'bm-status-wait' },
+    ship:   { lbl: 'Dikirim',             cls: 'bm-status-ship' },
+    recv:   { lbl: 'Diterima',            cls: 'bm-status-recv' },
+    disp:   { lbl: 'Sengketa',            cls: 'bm-status-disp' },
   }[s] || { lbl: s, cls: 'bm-status-done' };
 }
 
@@ -124,6 +125,12 @@ function OrderDetail({
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {order.status === 'unpaid' && (
+        <div style={{ padding: 14, background: 'var(--yellow-50,#fefce8)', border: '1px solid #fde68a', borderRadius: 10, fontSize: 13, color: '#92400e' }}>
+          Pembayaran sedang diproses otomatis oleh sistem. Halaman ini akan diperbarui setelah selesai.
         </div>
       )}
 
@@ -254,14 +261,14 @@ export default function PesananPage() {
   }
 
   const filtered = orders.filter(o => {
-    if (tab === 'active') return ['wait', 'ship'].includes(o.status);
+    if (tab === 'active') return ['unpaid', 'wait', 'ship'].includes(o.status);
     if (tab === 'completed') return o.status === 'recv';
     if (tab === 'disputes') return o.status === 'disp';
     return true;
   });
 
   const counts = {
-    active:    orders.filter(o => ['wait', 'ship'].includes(o.status)).length,
+    active:    orders.filter(o => ['unpaid', 'wait', 'ship'].includes(o.status)).length,
     completed: orders.filter(o => o.status === 'recv').length,
     disputes:  orders.filter(o => o.status === 'disp').length,
   };
