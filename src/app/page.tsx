@@ -80,6 +80,7 @@ function HomePageContent() {
         sortBy: sortBy,
         direction: direction,
         title: searchQuery || undefined,
+        categoryId: activeCat !== 'all' ? activeCat : undefined,
       });
       const mapped = data.content
           .map(l => listingToItem(l, activeCat === 'all' ? undefined : activeCat));
