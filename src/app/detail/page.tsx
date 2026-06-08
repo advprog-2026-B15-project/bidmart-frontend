@@ -73,7 +73,7 @@ function DetailContent() {
   const safe = !isAuctionEnded && cd.total > 60 * 60 * 1000;
   const urgent = !isAuctionEnded && cd.total < 2 * 60 * 1000;
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8082';
+  const API_BASE = '/api/proxy';
   const mainImageUrl = auctionItem?.imageUrls?.[thumb]
     ? `${API_BASE}/uploads/${auctionItem.imageUrls[thumb].split('/').pop()}`
     : null;

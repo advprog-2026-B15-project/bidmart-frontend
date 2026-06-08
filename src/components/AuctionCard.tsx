@@ -16,8 +16,9 @@ export default function AuctionCard({ item, onClick }: Readonly<AuctionCardProps
   const urgent = total < 2 * 60 * 1000 && total > 0;
   const ended = total <= 0;
 
-  const imageUrl = item.imageUrls?.[0] 
-    ? `http://54.164.111.51:8082/uploads/${item.imageUrls[0].split('/').pop()}` 
+  const API_BASE = '/api/proxy';
+  const imageUrl = item.imageUrls?.[0]
+    ? `${API_BASE}/uploads/${item.imageUrls[0].split('/').pop()}`
     : null;
 
   return (
