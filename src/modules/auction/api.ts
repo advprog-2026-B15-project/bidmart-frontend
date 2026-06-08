@@ -1,5 +1,6 @@
 import { apiFetch, getCurrentUserId } from '@/lib/api';
 import { API } from '@/lib/endpoints';
+import { getSseGatewayUrl } from '@/lib/sse';
 import type { AuctionItem, BidEntry } from '@/types';
 
 // Backend response types
@@ -25,6 +26,14 @@ interface BidResponse {
   bidderId: string;
   amount: number;
   createdAt: string;
+}
+
+export interface MyBidAuction {
+  auction: AuctionItem;
+  myHighestBid: number;
+  isTopBidder: boolean;
+  totalBids: number;
+  lastBidAt: string | null;
 }
 
 export interface CreateAuctionRequest {
@@ -82,9 +91,15 @@ function mapBid(b: BidResponse, currentUserId: string | null, index: number): Bi
 
 // API functions
 
-export async function getAuctions(): Promise<AuctionItem[]> {
-  const list = await apiFetch<AuctionResponse[]>(API.auction.list);
-  return list.map(a => mapAuction(a));
+export async function getAuctions(params?: { page?: number; size?: number; status?: string; title?: string }): Promise<{ content: AuctionItem[]; totalPages: number }> {
+  const q = new URLSearchParams();
+  if (params?.page !== undefined) q.set('page', String(params.page));
+  if (params?.size !== undefined) q.set('size', String(params.size));
+  if (params?.status) q.set('status', params.status);
+  if (params?.title) q.set('title', params.title);
+  const url = `${API.auction.list}${q.toString() ? '?' + q.toString() : ''}`;
+  const res = await apiFetch<{ content: AuctionResponse[]; totalPages: number }>(url);
+  return { content: res.content.map(a => mapAuction(a)), totalPages: res.totalPages ?? 1 };
 }
 
 export async function getAuctionById(id: string): Promise<AuctionItem> {
@@ -101,7 +116,7 @@ export async function getAuctionBids(auctionId: string): Promise<BidEntry[]> {
 export async function placeBid(auctionId: string, amount: number): Promise<BidResponse> {
   return apiFetch<BidResponse>(API.auction.placeBid(auctionId), {
     method: 'POST',
-    body: JSON.stringify({ amount }),
+    body: JSON.stringify({ amount, auctionId }),
   });
 }
 
@@ -118,12 +133,63 @@ export async function activateAuction(auctionId: string): Promise<AuctionRespons
   });
 }
 
-// SSE stream URL — use with EventSource (routes through Vercel proxy)
+// SSE stream URL — connect directly to the gateway so the browser keeps the stream open.
 export function getAuctionStreamUrl(auctionId: string): string {
-  return `/api/proxy${API.auction.stream(auctionId)}`;
+  return getSseGatewayUrl(API.auction.stream(auctionId));
 }
 
 // Raw auction data (for detail page — includes minimumIncrement)
 export async function getAuctionRaw(id: string): Promise<AuctionResponse> {
   return apiFetch<AuctionResponse>(API.auction.byId(id));
+}
+
+// Lookup active auction by catalog listing ID
+export async function getAuctionByListingId(listingId: string): Promise<AuctionResponse | null> {
+  return apiFetch<AuctionResponse>(API.auction.byListingId(listingId)).catch(() => null);
+}
+
+export async function getMyActiveBidAuctions(): Promise<MyBidAuction[]> {
+  const userId = getCurrentUserId();
+  if (!userId) return [];
+
+  const auctionMap = new Map<string, AuctionResponse>();
+  const statuses = ['ACTIVE', 'EXTENDED'] as const;
+
+  for (const status of statuses) {
+    const firstPage = await apiFetch<{ content: AuctionResponse[]; totalPages: number }>(`${API.auction.list}?status=${status}&page=0&size=50`);
+    firstPage.content.forEach(auction => auctionMap.set(auction.id, auction));
+
+    const pageLimit = Math.min(firstPage.totalPages ?? 1, 3);
+    for (let page = 1; page < pageLimit; page += 1) {
+      const nextPage = await apiFetch<{ content: AuctionResponse[] }>(`${API.auction.list}?status=${status}&page=${page}&size=50`);
+      nextPage.content.forEach(auction => auctionMap.set(auction.id, auction));
+    }
+  }
+
+  const auctions = Array.from(auctionMap.values());
+  const results: MyBidAuction[] = [];
+
+  for (let i = 0; i < auctions.length; i += 8) {
+    const batch = auctions.slice(i, i + 8);
+    const entries = await Promise.all(batch.map(async auction => {
+      const bids = await apiFetch<BidResponse[]>(API.auction.bids(auction.id)).catch(() => null);
+      if (!bids?.length) return null;
+
+      const myBids = bids.filter(bid => bid.bidderId === userId);
+      if (!myBids.length) return null;
+
+      return {
+        auction: mapAuction(auction, bids.length),
+        myHighestBid: Math.max(...myBids.map(bid => bid.amount)),
+        isTopBidder: bids[0]?.bidderId === userId,
+        totalBids: bids.length,
+        lastBidAt: myBids[0]?.createdAt ?? null,
+      } satisfies MyBidAuction;
+    }));
+
+    const validEntries = entries.filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+    results.push(...validEntries);
+  }
+
+  return results.sort((a, b) => a.auction.ends - b.auction.ends);
 }

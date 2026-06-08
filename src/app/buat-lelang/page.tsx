@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import Switch from '@/components/ui/Switch';
@@ -35,7 +35,13 @@ const CATEGORY_TREE: Record<string, CategoryInfo> = {
 };
 
 const PHOTO_SLOTS = [0, 1, 2, 3, 4, 5];
-const DURATIONS = [1, 3, 5, 7, 10, 14];
+const DURATIONS = [
+  { label: '2 Menit', ms: 2 * 60 * 1000 },
+  { label: '1 Hari', ms: 86400000 },
+  { label: '3 Hari', ms: 3 * 86400000 },
+  { label: '7 Hari', ms: 7 * 86400000 },
+  { label: '14 Hari', ms: 14 * 86400000 },
+];
 
 export default function BuatLelangPage() {
   useRequireAuth('SELLER');
@@ -75,18 +81,31 @@ export default function BuatLelangPage() {
   const [startPrice, setStartPrice] = useState('');
   const [reserve, setReserve] = useState('');
   const [increment, setIncrement] = useState('50000');
-  const [days, setDays] = useState(7);
+  const [durationMs, setDurationMs] = useState(7 * 86400000);
   const [antiSnipe, setAntiSnipe] = useState(true);
   const [cat1, setCat1] = useState('Elektronik');
   const [cat2, setCat2] = useState('Audio & Video');
   const [cat3, setCat3] = useState('Headphone');
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [previewBaseTime, setPreviewBaseTime] = useState(() => Date.now());
 
-  const [mountTime] = useState<number>(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setPreviewBaseTime(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const onlyDigits = (v: string) => v.replace(/\D/g, '');
   const fmtField = (v: string) => Number(onlyDigits(v) || '0').toLocaleString('id-ID');
-  const endDate = new Date(mountTime + days * 86400000).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const endDate = new Date(previewBaseTime + durationMs).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  function buildEndTimes() {
+    const endTimeIso = new Date(Date.now() + durationMs).toISOString();
+    return {
+      local: endTimeIso.replace('Z', ''),
+      offset: endTimeIso.replace('Z', '+00:00'),
+    };
+  }
 
   const selectPrimaryCategory = (category: string) => {
     const categoryInfo = CATEGORY_TREE[category];
@@ -104,8 +123,7 @@ export default function BuatLelangPage() {
     setSubmitting(true);
     setErrorMsg('');
     try {
-      const endTimeIso = new Date(mountTime + days * 86400000).toISOString();
-      const endTimeLocal = endTimeIso.replace('Z', '');
+      const { local: endTimeLocal } = buildEndTimes();
       const startAmt = Number(onlyDigits(startPrice)) || 0;
       const reserveAmt = reserve ? Number(onlyDigits(reserve)) : 0;
       const imageFiles = files.filter((f): f is File => f !== null);
@@ -136,9 +154,7 @@ export default function BuatLelangPage() {
     setSubmitting(true);
     setErrorMsg('');
     try {
-      const endTimeIso = new Date(mountTime + days * 86400000).toISOString();
-      const endTimeLocal = endTimeIso.replace('Z', ''); // catalog (LocalDateTime)
-      const endTimeOffset = endTimeIso.replace('.000Z', '+00:00'); // auction (OffsetDateTime)
+      const { local: endTimeLocal, offset: endTimeOffset } = buildEndTimes();
       const startAmt = Number(onlyDigits(startPrice));
       const reserveAmt = reserve ? Number(onlyDigits(reserve)) : 0;
       const imageFiles = files.filter((f): f is File => f !== null);
@@ -343,9 +359,9 @@ export default function BuatLelangPage() {
             <div className="bm-field" style={{ marginTop: 6 }}>
               <span className="bm-field-label">Durasi lelang</span>
               <div style={{ display: 'flex', gap: 8 }}>
-                {DURATIONS.map(n => (
-                  <button type="button" key={n} onClick={() => setDays(n)} style={{ padding: '9px 16px', borderRadius: 8, border: '1px solid ' + (days === n ? 'var(--ink)' : 'var(--border)'), background: days === n ? 'var(--ink)' : 'var(--surface)', color: days === n ? '#fff' : 'var(--ink)', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
-                    {n} hari
+                {DURATIONS.map(d => (
+                  <button type="button" key={d.label} onClick={() => setDurationMs(d.ms)} style={{ padding: '9px 16px', borderRadius: 8, border: '1px solid ' + (durationMs === d.ms ? 'var(--ink)' : 'var(--border)'), background: durationMs === d.ms ? 'var(--ink)' : 'var(--surface)', color: durationMs === d.ms ? '#fff' : 'var(--ink)', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
+                    {d.label}
                   </button>
                 ))}
               </div>
@@ -397,7 +413,7 @@ export default function BuatLelangPage() {
             <div className="bm-listing-meta" style={{ padding: '12px 4px 0' }}>
               <div className="bm-listing-title">{title || 'Judul lelang'}</div>
               <div className="bm-listing-price">{fmtRp(Number(startPrice) || 0)}</div>
-              <div className="bm-listing-sub"><span>{days}h tersisa</span><span> · 0 bid</span></div>
+              <div className="bm-listing-sub"><span>{DURATIONS.find(d => d.ms === durationMs)?.label} tersisa</span><span> · 0 bid</span></div>
             </div>
           </div>
 
@@ -407,7 +423,7 @@ export default function BuatLelangPage() {
               ['Harga awal', fmtRp(Number(startPrice) || 0)],
               ['Reserve', reserve ? fmtRp(Number(reserve)) : '—'],
               ['Kelipatan', fmtRp(Number(increment) || 50_000)],
-              ['Durasi', `${days} hari`],
+              ['Durasi', DURATIONS.find(d => d.ms === durationMs)?.label || '-'],
             ].map(([lbl, val]) => (
               <div key={lbl} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
                 <span style={{ color: 'var(--ink-2)' }}>{lbl}</span>

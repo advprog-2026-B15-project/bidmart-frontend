@@ -48,17 +48,21 @@ interface NotificationPreference {
 // ── Mappers ───────────────────────────────────────────────────────────────────
 
 const STATUS_MAP: Record<string, string> = {
-  CREATED: 'wait', WAITING_PAYMENT: 'wait', PENDING: 'wait', PAID: 'wait', CONFIRMED: 'wait',
+  CREATED: 'unpaid',
+  PAID: 'wait',
   SHIPPED: 'ship',
-  DELIVERED: 'recv', RESOLVED: 'recv',
+  DELIVERED: 'recv',
+  COMPLETED: 'done',
   DISPUTED: 'disp',
 };
 
 const STEP_MAP: Record<string, number> = {
-  CREATED: 0, WAITING_PAYMENT: 1, PENDING: 1, PAID: 1, CONFIRMED: 1,
+  CREATED: 0,
+  PAID: 1,
   SHIPPED: 2,
   DISPUTED: 3,
-  DELIVERED: 4, RESOLVED: 4,
+  DELIVERED: 3,
+  COMPLETED: 4,
 };
 
 const NOTIF_TYPE_MAP: Record<string, string> = {
@@ -140,6 +144,14 @@ export async function getBookingDetail(id: string, role: 'buyer' | 'seller'): Pr
   return mapBookingDetail(detail, role);
 }
 
+export async function payBooking(id: string): Promise<void> {
+  const numericId = id.replace('BM-', '');
+  await apiFetch(`/api/bookings/${numericId}/pay`, {
+    method: 'PATCH',
+    headers: { 'X-User-Role': 'BUYER' },
+  });
+}
+
 export async function updateShipment(
   id: string,
   courierName: string,
@@ -156,6 +168,14 @@ export async function updateShipment(
 export async function confirmDelivery(id: string): Promise<void> {
   const numericId = id.replace('BM-', '');
   await apiFetch(`/api/bookings/${numericId}/confirm-delivery`, {
+    method: 'PATCH',
+    headers: { 'X-User-Role': 'BUYER' },
+  });
+}
+
+export async function completeOrder(id: string): Promise<void> {
+  const numericId = id.replace('BM-', '');
+  await apiFetch(`/api/bookings/${numericId}/complete`, {
     method: 'PATCH',
     headers: { 'X-User-Role': 'BUYER' },
   });
@@ -178,7 +198,10 @@ export async function getMyNotifications(): Promise<Notification[]> {
 }
 
 export async function markNotificationRead(id: string): Promise<void> {
-  await apiFetch(`/api/notifications/${id}/read`, { method: 'PATCH' });
+  await apiFetch(`/api/notifications/${id}/read`, {
+    method: 'PATCH',
+    body: JSON.stringify({ read: true }),
+  });
 }
 
 export async function getNotificationPreferences(): Promise<NotificationPreference> {
