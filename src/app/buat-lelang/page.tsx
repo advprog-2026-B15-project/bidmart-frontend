@@ -204,15 +204,7 @@ export default function BuatLelangPage() {
       <div className="bm-pg-head">
         <div>
           <h1>Buat lelang baru</h1>
-          <p>Isi detail barang kamu. Pilih antara simpan sebagai draft atau publikasikan sekarang.</p>
-        </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <Button variant="ghost" size="md" onClick={handleSaveDraft} disabled={submitting}>
-            Simpan sebagai draft
-          </Button>
-          <Button variant="primary" size="md" onClick={handlePublish} disabled={submitting}>
-            Publikasikan
-          </Button>
+          <p>Isi detail barang yang ingin kamu lelang di bawah ini.</p>
         </div>
       </div>
 
