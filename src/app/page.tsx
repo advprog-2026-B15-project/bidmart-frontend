@@ -43,26 +43,26 @@ function HomePageContent() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState<string | null>(null);
-  const [activeCat, setActiveCat] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [inputQuery, setInputQuery] = useState('');
-
-  const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+
+  const searchQuery = searchParams.get('q') ?? '';
+  const activeCat = searchParams.get('cat') ?? 'all';
+  const sortBy = searchParams.get('sb') ?? 'createdAt';
+  const direction = (searchParams.get('sd') ?? 'desc') as 'asc' | 'desc';
+  const pParam = parseInt(searchParams.get('p') ?? '0', 10);
+  const page = isNaN(pParam) ? 0 : pParam;
   const pageSize = 8;
+
+  const [inputQuery, setInputQuery] = useState(searchQuery);
 
   useEffect(() => {
     const name = getUsername();
     if (name) setUsername(name.includes('@') ? name.split('@')[0] : name);
-    const q = searchParams.get('q') ?? '';
-    const cat = searchParams.get('cat') ?? 'all';
-    const p = parseInt(searchParams.get('p') ?? '0', 10);
+  }, []);
 
-    setInputQuery(q);
-    setSearchQuery(q);
-    setActiveCat(cat);
-    setPage(isNaN(p) ? 0 : p);
-  }, [searchParams]);
+  useEffect(() => {
+    setInputQuery(searchQuery);
+  }, [searchQuery]);
 
   useEffect(() => {
     getCategories()
@@ -79,10 +79,17 @@ function HomePageContent() {
         title: searchQuery || undefined,
         categoryId: activeCat !== 'all' ? activeCat : undefined,
         status: 'ACTIVE',
+        sortBy: sortBy,
+        direction: direction,
       });
       const mapped = data.content
-          .map(l => listingToItem(l, activeCat !== 'all' ? activeCat : undefined))
-          .sort((a, b) => a.ends - b.ends);
+          .map(l => listingToItem(l, activeCat !== 'all' ? activeCat : undefined));
+
+      // Jika kita urutkan di backend, kita tidak perlu sort lagi di frontend
+      // Kecuali jika kita ingin mempertahankan sort 'ends' sebagai default UI
+      if (sortBy === 'createdAt' && !searchParams.get('sb')) {
+         mapped.sort((a, b) => a.ends - b.ends);
+      }
 
       setItems(mapped);
       setTotalPages(data.totalPages || 1);
@@ -92,15 +99,22 @@ function HomePageContent() {
     } finally {
       setLoading(false);
     }
-  }, [activeCat, searchQuery, page]);
+  }, [activeCat, searchQuery, page, sortBy, direction, searchParams]);
 
   useEffect(() => { fetchListings(); }, [fetchListings]);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    const params = new URLSearchParams();
-    if (inputQuery) params.set('q', inputQuery);
-    if (activeCat !== 'all') params.set('cat', activeCat);
+    const params = new URLSearchParams(searchParams.toString());
+    if (inputQuery) params.set('q', inputQuery); else params.delete('q');
+    params.set('p', '0');
+    router.push(`/?${params.toString()}`);
+  }
+
+  function handleSort(sb: string, sd: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('sb', sb);
+    params.set('sd', sd);
     params.set('p', '0');
     router.push(`/?${params.toString()}`);
   }
@@ -140,42 +154,6 @@ function HomePageContent() {
                     />
                     <Button variant="primary" size="lg" type="submit">Cari</Button>
                   </form>
-
-                  <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
-                    <button
-                        type="button"
-                        onClick={() => router.push('/')}
-                        style={{
-                          padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
-                          fontSize: 14, fontWeight: 500,
-                          backgroundColor: activeCat === 'all' ? 'var(--blue-600)' : 'var(--surface-2)',
-                          color: activeCat === 'all' ? '#fff' : 'var(--ink)'
-                        }}
-                    >
-                      Semua
-                    </button>
-                    {categories.map(c => (
-                        <button
-                            key={c.id}
-                            type="button"
-                            onClick={() => {
-                              const params = new URLSearchParams(searchParams.toString());
-                              params.set('cat', c.id);
-                              params.set('p', '0');
-                              router.push(`/?${params.toString()}`);
-                            }}
-                            style={{
-                              padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
-                              fontSize: 14, fontWeight: 500,
-                              backgroundColor: activeCat === c.id ? 'var(--blue-600)' : 'var(--surface-2)',
-                              color: activeCat === c.id ? '#fff' : 'var(--ink)'
-                            }}
-                        >
-                          {c.name}
-                        </button>
-                    ))}
-                  </div>
-
                 </div>
                 <div className="bm-hero-art">
                   <div className="bm-hero-tile bm-hero-tile-1">
@@ -211,13 +189,75 @@ function HomePageContent() {
             </div>
         )}
 
+        {/* Satu-satunya Bar Filter Kategori yang Dipertahankan (Selalu Aktif & Terlihat) */}
+        <div style={{ display: 'flex', gap: 8, margin: '16px 0 24px', flexWrap: 'wrap' }}>
+          <button
+              type="button"
+              className={`bm-catpill ${activeCat === 'all' ? 'active' : ''}`}
+              onClick={() => {
+                const params = new URLSearchParams(searchParams.toString());
+                params.delete('cat');
+                params.set('p', '0');
+                router.push(`/?${params.toString()}`);
+              }}
+              style={{
+                padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                fontSize: 14, fontWeight: 500,
+                backgroundColor: activeCat === 'all' ? 'var(--blue-600)' : 'var(--surface-2)',
+                color: activeCat === 'all' ? '#fff' : 'var(--ink)'
+              }}
+          >
+            Semua
+          </button>
+          {categories.map(c => (
+              <button
+                  key={c.id}
+                  type="button"
+                  className={`bm-catpill ${activeCat === c.id ? 'active' : ''}`}
+                  onClick={() => {
+                    const params = new URLSearchParams(searchParams.toString());
+                    params.set('cat', c.id);
+                    params.set('p', '0');
+                    router.push(`/?${params.toString()}`);
+                  }}
+                  style={{
+                    padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                    fontSize: 14, fontWeight: 500,
+                    backgroundColor: activeCat === c.id ? 'var(--blue-600)' : 'var(--surface-2)',
+                    color: activeCat === c.id ? '#fff' : 'var(--ink)'
+                  }}
+              >
+                {c.name}
+              </button>
+          ))}
+        </div>
+
         <section className="bm-section">
-          <div className="bm-section-head">
+          <div className="bm-section-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <h2>{isFiltered ? 'Hasil' : 'Lelang Terbaru'}</h2>
               <p style={{ color: 'var(--ink-3)', fontSize: 13, marginTop: 4 }}>
                 {isFiltered ? `${items.length} listing ditemukan` : 'Temukan barang impian kamu di lelang aktif hari ini.'}
               </p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>Urutkan:</span>
+              <select
+                  className="bm-input"
+                  value={`${sortBy}-${direction}`}
+                  onChange={(e) => {
+                    const [sb, sd] = e.target.value.split('-');
+                    handleSort(sb, sd);
+                  }}
+                  style={{ height: 36, padding: '0 8px', fontSize: 13, width: 'auto' }}
+              >
+                <option value="createdAt-desc">Terbaru</option>
+                <option value="createdAt-asc">Terlama</option>
+                <option value="currentPrice-asc">Harga Terendah</option>
+                <option value="currentPrice-desc">Harga Tertinggi</option>
+                <option value="category-asc">Kategori (A-Z)</option>
+                <option value="category-desc">Kategori (Z-A)</option>
+              </select>
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
