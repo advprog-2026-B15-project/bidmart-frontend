@@ -124,40 +124,42 @@ export function NotificationProvider({ children }: Readonly<{ children: React.Re
       }
     }
 
+    function handleSseEvent(event: { event: string; data: string }) {
+      if (event.event === 'heartbeat' || event.event === 'connected') return;
+
+      if (event.event === 'notification') {
+        try {
+          const parsed = mapRealtimeNotification(JSON.parse(event.data) as RealtimeNotificationPayload);
+          setNotifications(prev => {
+            const rest = prev.filter(item => item.id !== parsed.id);
+            return [{ ...parsed, unread: true }, ...rest];
+          });
+
+          if (!seenIdsRef.current.has(parsed.id)) {
+            seenIdsRef.current.add(parsed.id);
+            addToast({
+              tone: toastTone(parsed.type),
+              title: parsed.title,
+              desc: parsed.desc,
+            });
+          }
+          return;
+        } catch {
+          // fall back to a refresh if the payload is malformed
+        }
+      }
+
+      void getMyNotifications()
+        .then(list => {
+          setNotifications(list);
+          list.forEach(item => seenIdsRef.current.add(item.id));
+        })
+        .catch(() => {});
+    }
+
     async function connect() {
       try {
-        await openAuthenticatedSse('/api/notifications/stream', event => {
-          if (event.event === 'heartbeat' || event.event === 'connected') return;
-
-          if (event.event === 'notification') {
-            try {
-              const parsed = mapRealtimeNotification(JSON.parse(event.data) as RealtimeNotificationPayload);
-              setNotifications(prev => {
-                const rest = prev.filter(item => item.id !== parsed.id);
-                return [{ ...parsed, unread: true }, ...rest];
-              });
-
-              if (!seenIdsRef.current.has(parsed.id)) {
-                seenIdsRef.current.add(parsed.id);
-                addToast({
-                  tone: toastTone(parsed.type),
-                  title: parsed.title,
-                  desc: parsed.desc,
-                });
-              }
-              return;
-            } catch {
-              // fall back to a refresh if the payload is malformed
-            }
-          }
-
-          void getMyNotifications()
-            .then(list => {
-              setNotifications(list);
-              list.forEach(item => seenIdsRef.current.add(item.id));
-            })
-            .catch(() => {});
-        }, controller.signal);
+        await openAuthenticatedSse('/api/notifications/stream', handleSseEvent, controller.signal);
       } catch {
         if (!stopped) reconnectTimer = globalThis.setTimeout(connect, 3000);
       }
