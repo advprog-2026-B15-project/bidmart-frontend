@@ -39,6 +39,8 @@ export interface ListingFilters {
   minPrice?: number;
   maxPrice?: number;
   status?: string;
+  sortBy?: string;
+  direction?: 'asc' | 'desc';
 }
 
 export function getListings(filters?: ListingFilters) {
@@ -50,6 +52,8 @@ export function getListings(filters?: ListingFilters) {
   if (filters?.minPrice !== undefined) qs.set('minPrice', String(filters.minPrice));
   if (filters?.maxPrice !== undefined) qs.set('maxPrice', String(filters.maxPrice));
   if (filters?.status) qs.set('status', filters.status);
+  if (filters?.sortBy) qs.set('sortBy', filters.sortBy);
+  if (filters?.direction) qs.set('direction', filters.direction);
   const query = qs.toString() ? `?${qs}` : '';
   return apiFetch<PagedListings>(`/api/listings${query}`);
 }

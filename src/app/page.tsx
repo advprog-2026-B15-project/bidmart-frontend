@@ -45,14 +45,14 @@ function HomePageContent() {
   const [username, setUsername] = useState<string | null>(null);
   const [totalPages, setTotalPages] = useState(1);
 
-  // Ambil data langsung dari URL (Single Source of Truth)
   const searchQuery = searchParams.get('q') ?? '';
   const activeCat = searchParams.get('cat') ?? 'all';
+  const sortBy = searchParams.get('sb') ?? 'createdAt';
+  const direction = (searchParams.get('sd') ?? 'desc') as 'asc' | 'desc';
   const pParam = parseInt(searchParams.get('p') ?? '0', 10);
   const page = isNaN(pParam) ? 0 : pParam;
   const pageSize = 8;
 
-  // Controlled input state hanya untuk text field pencarian
   const [inputQuery, setInputQuery] = useState(searchQuery);
 
   useEffect(() => {
@@ -77,11 +77,18 @@ function HomePageContent() {
         page: page,
         size: pageSize,
         status: 'ACTIVE',
+        sortBy: sortBy,
+        direction: direction,
         title: searchQuery || undefined,
       });
       const mapped = data.content
-          .map(l => listingToItem(l, activeCat !== 'all' ? activeCat : undefined))
-          .sort((a, b) => a.ends - b.ends);
+          .map(l => listingToItem(l, activeCat !== 'all' ? activeCat : undefined));
+
+      // Jika kita urutkan di backend, kita tidak perlu sort lagi di frontend
+      // Kecuali jika kita ingin mempertahankan sort 'ends' sebagai default UI
+      if (sortBy === 'createdAt' && !searchParams.get('sb')) {
+         mapped.sort((a, b) => a.ends - b.ends);
+      }
 
       setItems(mapped);
       setTotalPages(data.totalPages || 1);
@@ -91,15 +98,22 @@ function HomePageContent() {
     } finally {
       setLoading(false);
     }
-  }, [activeCat, searchQuery, page]);
+  }, [activeCat, searchQuery, page, sortBy, direction, searchParams]);
 
   useEffect(() => { fetchListings(); }, [fetchListings]);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    const params = new URLSearchParams();
-    if (inputQuery) params.set('q', inputQuery);
-    if (activeCat !== 'all') params.set('cat', activeCat);
+    const params = new URLSearchParams(searchParams.toString());
+    if (inputQuery) params.set('q', inputQuery); else params.delete('q');
+    params.set('p', '0');
+    router.push(`/?${params.toString()}`);
+  }
+
+  function handleSort(sb: string, sd: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('sb', sb);
+    params.set('sd', sd);
     params.set('p', '0');
     router.push(`/?${params.toString()}`);
   }
@@ -174,7 +188,7 @@ function HomePageContent() {
             </div>
         )}
 
-        {/* Bar Filter Kategori Berdasarkan Kategori Asli DB (Selalu Terlihat & Tidak Ikut Tersembunyi) */}
+        {/* Satu-satunya Bar Filter Kategori yang Dipertahankan (Selalu Aktif & Terlihat) */}
         <div style={{ display: 'flex', gap: 8, margin: '16px 0 24px', flexWrap: 'wrap' }}>
           <button
               type="button"
@@ -218,12 +232,31 @@ function HomePageContent() {
         </div>
 
         <section className="bm-section">
-          <div className="bm-section-head">
+          <div className="bm-section-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <h2>{isFiltered ? 'Hasil' : 'Lelang Terbaru'}</h2>
               <p style={{ color: 'var(--ink-3)', fontSize: 13, marginTop: 4 }}>
                 {isFiltered ? `${items.length} listing ditemukan` : 'Temukan barang impian kamu di lelang aktif hari ini.'}
               </p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>Urutkan:</span>
+              <select
+                  className="bm-input"
+                  value={`${sortBy}-${direction}`}
+                  onChange={(e) => {
+                    const [sb, sd] = e.target.value.split('-');
+                    handleSort(sb, sd);
+                  }}
+                  style={{ height: 36, padding: '0 8px', fontSize: 13, width: 'auto' }}
+              >
+                <option value="createdAt-desc">Terbaru</option>
+                <option value="createdAt-asc">Terlama</option>
+                <option value="currentPrice-asc">Harga Terendah</option>
+                <option value="currentPrice-desc">Harga Tertinggi</option>
+                <option value="category-asc">Kategori (A-Z)</option>
+                <option value="category-desc">Kategori (Z-A)</option>
+              </select>
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
