@@ -79,7 +79,7 @@ function multipartHeaders(): Record<string, string> {
   const headers: Record<string, string> = {};
   const token = getToken();
   const userId = getCurrentUserId();
-  const role = typeof window !== 'undefined' ? localStorage.getItem('bidmart_role') : null;
+  const role = typeof window === 'undefined' ? null : localStorage.getItem('bidmart_role');
   if (token) headers['Authorization'] = `Bearer ${token}`;
   if (userId) headers['X-User-Id'] = userId;
   if (role) headers['X-User-Role'] = role;
