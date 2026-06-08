@@ -159,7 +159,7 @@ export function NotificationProvider({ children }: Readonly<{ children: React.Re
             .catch(() => {});
         }, controller.signal);
       } catch {
-        if (!stopped) reconnectTimer = window.setTimeout(connect, 3000);
+        if (!stopped) reconnectTimer = globalThis.setTimeout(connect, 3000);
       }
     }
 
@@ -169,7 +169,7 @@ export function NotificationProvider({ children }: Readonly<{ children: React.Re
     return () => {
       stopped = true;
       controller.abort();
-      if (reconnectTimer) window.clearTimeout(reconnectTimer);
+      if (reconnectTimer) globalThis.clearTimeout(reconnectTimer);
     };
   }, [addToast, pathname]);
 
