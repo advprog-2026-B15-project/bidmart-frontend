@@ -106,7 +106,7 @@ export function NotificationProvider({ children }: Readonly<{ children: React.Re
       return;
     }
 
-    let reconnectTimer: number | undefined;
+    let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
     let stopped = false;
     const controller = new AbortController();
 
