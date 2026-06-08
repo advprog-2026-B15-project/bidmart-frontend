@@ -82,7 +82,7 @@ function HomePageContent() {
         title: searchQuery || undefined,
       });
       const mapped = data.content
-          .map(l => listingToItem(l, activeCat !== 'all' ? activeCat : undefined));
+          .map(l => listingToItem(l, activeCat === 'all' ? undefined : activeCat));
 
       // Jika kita urutkan di backend, kita tidak perlu sort lagi di frontend
       // Kecuali jika kita ingin mempertahankan sort 'ends' sebagai default UI
